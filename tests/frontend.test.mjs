@@ -17,7 +17,7 @@ test('Friendly frontend keeps discovery, booking, and account actions usable', {
   dom.window.matchMedia = () => ({ matches: false, addEventListener: noop, removeEventListener: noop });
   const vite = await createServer({ server: { middlewareMode: true, watch: null }, appType: 'custom' });
   const React = await import('react');
-  const { render, screen, cleanup, waitFor } = await import('@testing-library/react');
+  const { render, screen, cleanup, waitFor, act } = await import('@testing-library/react');
   suite.afterEach(() => cleanup());
   const { default: userEvent } = await import('@testing-library/user-event');
   const { default: Auth } = await vite.ssrLoadModule('/src/Auth.jsx');
@@ -93,6 +93,48 @@ test('Friendly frontend keeps discovery, booking, and account actions usable', {
       await waitFor(() => assert.ok(paths.some(path => new URL(path, 'http://localhost').searchParams.get('maxPrice') === '25')));
       await user.type(screen.getByRole('searchbox', { name: /Search tutors/ }), 'Avery');
       await waitFor(() => assert.ok(paths.some(path => new URL(path, 'http://localhost').searchParams.get('search') === 'Avery')), { timeout: 1500 });
+      cleanup();
+    });
+
+    await suite.test('invalid tutor payload shows a retry message and leaves the homepage usable', async () => {
+      let calls = 0;
+      globalThis.fetch = path => {
+        if (path.startsWith('/api/tutors?')) {
+          calls += 1;
+          return reply(calls === 1 ? {} : { tutors: [tutor], languages: [] });
+        }
+        throw new Error(`Unexpected test request ${path}`);
+      };
+      render(h(Home, { user: null, onAuth: noop, onTutor: noop, notice: noop }));
+      await screen.findByRole('alert');
+      assert.ok(screen.getByRole('heading', { name: /A new language/ }));
+      await user.click(screen.getByRole('button', { name: /Try again/ }));
+      await screen.findByRole('button', { name: "View Avery Tutor's profile" });
+      assert.equal(screen.queryByRole('alert'), null);
+      assert.equal(calls, 2);
+      cleanup();
+    });
+
+    await suite.test('a cancelled tutor response cannot replace the current session results', async () => {
+      let releaseFirst;
+      let tutorCalls = 0;
+      globalThis.fetch = path => {
+        if (path === '/api/saved') return reply({ tutorIds: [] });
+        if (path.startsWith('/api/tutors?')) {
+          tutorCalls += 1;
+          if (tutorCalls === 1) return Promise.resolve({ ok: true, status: 200, json: () => new Promise(resolve => { releaseFirst = resolve; }) });
+          return reply({ tutors: [tutor], languages: [] });
+        }
+        throw new Error(`Unexpected test request ${path}`);
+      };
+      const props = { user: null, onAuth: noop, onTutor: noop, notice: noop };
+      const view = render(h(Home, props));
+      await waitFor(() => assert.equal(typeof releaseFirst, 'function'));
+      view.rerender(h(Home, { ...props, user: { id: 'student-id', role: 'learner' } }));
+      await screen.findByRole('button', { name: "View Avery Tutor's profile" });
+      await act(async () => { releaseFirst({ tutors: [], languages: [] }); });
+      assert.ok(screen.getByRole('button', { name: "View Avery Tutor's profile" }));
+      assert.equal(tutorCalls, 2);
       cleanup();
     });
 

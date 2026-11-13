@@ -96,7 +96,11 @@ export default function Home({ user, onAuth, onTutor, notice }) {
   useEffect(() => {
     const controller = new AbortController();
     if (!user) { setSaved([]); setSavedOnly(false); return; }
-    api('/saved', { signal: controller.signal }).then(data => setSaved(data.tutorIds)).catch(err => { if (err.name !== 'AbortError') notice(err.message); });
+    api('/saved', { signal: controller.signal }).then(data => {
+      if (controller.signal.aborted) return;
+      if (!Array.isArray(data.tutorIds)) throw new Error('Your saved tutors could not be loaded. Please try again.');
+      setSaved(data.tutorIds);
+    }).catch(err => { if (!controller.signal.aborted && err.name !== 'AbortError') notice(err.message); });
     return () => controller.abort();
   }, [user?.id]);
   useEffect(() => {
@@ -107,7 +111,14 @@ export default function Home({ user, onAuth, onTutor, notice }) {
     if (query) params.set('search', query);
     if (savedOnly && user) params.set('saved', 'true');
     setLoading(true); setError(''); setVisibleCount(6);
-    api(`/tutors?${params}`, { signal: controller.signal }).then(data => { setTutors(data.tutors); setCounts(data.languages || []); }).catch(err => { if (err.name !== 'AbortError') setError(err.message); }).finally(() => { if (!controller.signal.aborted) setLoading(false); });
+    api(`/tutors?${params}`, { signal: controller.signal }).then(data => {
+      if (controller.signal.aborted) return;
+      if (!Array.isArray(data.tutors) || (data.languages != null && !Array.isArray(data.languages))) {
+        throw new Error('Tutor information could not be read. Please try again.');
+      }
+      setTutors(data.tutors);
+      setCounts(data.languages ?? []);
+    }).catch(err => { if (!controller.signal.aborted && err.name !== 'AbortError') setError(err.message); }).finally(() => { if (!controller.signal.aborted) setLoading(false); });
     return () => controller.abort();
   }, [language, budget, query, savedOnly, user?.id, version]);
 

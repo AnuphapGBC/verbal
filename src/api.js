@@ -16,15 +16,24 @@ export async function api(path, options = {}) {
     if (error.name === 'AbortError') throw error;
     throw new Error('Unable to reach Verbal. Check your connection and try again.');
   }
-  const data = await response.json().catch(() => ({}));
+  const unexpectedResponse = 'Verbal returned an unexpected response. Please refresh the page and try again.';
+  let data;
+  try {
+    data = await response.json();
+  } catch (error) {
+    // Cancellation can happen after fetch resolves, while the body is read.
+    if (error.name === 'AbortError') throw error;
+    if (response.ok) throw new Error(unexpectedResponse);
+  }
   if (!response.ok) {
     const fallback=response.status===404
       ? 'This service could not be found. Please refresh the page; if it continues, the site needs a deployment update.'
       : 'Something went wrong. Please try again.';
-    const error = new Error(data.error || fallback);
+    const error = new Error(typeof data?.error === 'string' && data.error ? data.error : fallback);
     error.status = response.status;
     throw error;
   }
+  if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error(unexpectedResponse);
   return data;
 }
 
