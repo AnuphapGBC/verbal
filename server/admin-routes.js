@@ -1,12 +1,18 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { query, transaction } from './db.js';
-import { authenticated, parse, integerId, fail, lockSchedule } from './security.js';
+import { authenticated, parse, integerId, fail, lockSchedule,rateLimit } from './security.js';
+import { emailStatus,verifyEmailConnection } from './email.js';
 
 export const adminRoutes = Router();
 adminRoutes.use(authenticated, (req, _res, next) => {
   if (req.user.role !== 'admin') fail(403, 'Administrator access is required.');
   next();
+});
+
+adminRoutes.get('/email',(_req,res)=>res.json(emailStatus()));
+adminRoutes.post('/email/verify',rateLimit('email-verify',5,req=>req.user.id),async(_req,res)=>{
+  res.json(await verifyEmailConnection());
 });
 
 adminRoutes.get('/overview', async (_req, res) => {

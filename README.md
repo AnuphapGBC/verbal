@@ -66,6 +66,25 @@ Seeding is idempotent and adds 21 days of sample availability. Run it again to e
 
 Passwords use salted scrypt hashes. Sessions use random HttpOnly, SameSite cookies backed by hashed tokens in PostgreSQL. Production cookies are Secure. Auth rate limits use shared database counters; password changes invalidate other sessions. API requests are validated, queries are parameterized, unsafe browser origins are rejected, and production responses include security headers. Expired sessions and rate-limit records are removed hourly by the production server.
 
+## Gmail notifications
+
+The sender is configured as `Verbal Notifications <verbal.notifications@gmail.com>`. This uses Gmail SMTP with a Google app password, not the normal Google sign-in password. In Vercel's Production environment set:
+
+| Variable | Type | Value |
+| --- | --- | --- |
+| `SMTP_USER` | Config | `verbal.notifications@gmail.com` |
+| `SMTP_PASS` | Secret | The Google-generated 16-character app password (spaces between groups are accepted) |
+| `MAIL_FROM_NAME` | Config | `Verbal Notifications` |
+| `MAIL_ENABLED` | Config | `false` until connection verification succeeds, then `true` |
+
+Enable Google 2-Step Verification and create the app password in the sender's Google Account. Keep it in Vercel or the ignored local `.env`; never put it in source, a `VITE_` variable, or a chat message. Changing environment variables requires a new deployment.
+
+Admins can open **Admin → Notifications** to inspect configuration and choose **Check Gmail connection**. That action verifies SMTP authentication without sending an email and is rate-limited. A configuration-ready badge alone does not prove Google accepted the credential.
+
+When enabled, the app sends welcome emails, reservation confirmations/cancellations, lesson-completion notices, and new-message alerts. Emails use plain text plus escaped HTML, show lesson times in UTC, and link to the production workspace. Message alerts do not include the private message body and are limited to one per conversation/recipient every 15 minutes. Test and sample profiles, reserved `.invalid`/example recipients, and the seeded test accounts do not receive messages. Use a real recipient account to test delivery.
+
+The SMTP send is awaited within the request so Vercel does not freeze it after responding. Delivery is best-effort: a Gmail failure cannot undo a committed booking or message, and the app does not retry failed sends automatically. No scheduled lesson reminders, bulk marketing, or password-reset emails are included. Gmail's personal-account limits apply; use a transactional provider when volume or delivery guarantees grow.
+
 ## Verify
 
 ```sh
@@ -114,4 +133,4 @@ Configure `DATABASE_URL`, `NODE_ENV=production`, `APP_ORIGIN=https://your-domain
 
 `npm run preview` previews the static frontend build only; use `npm start` for the complete app. Client/server dependencies install with lifecycle scripts disabled in `.npmrc`; the prebuilt esbuild binary is supplied as an optional platform dependency.
 
-Portraits load from Unsplash and fonts from Google Fonts, with local avatar/system-font fallbacks. No email service, password recovery email, integrated video classroom, or online payment processor is configured. The app uses password sign-in, in-app messages, externally arranged lessons, and pay-later reservations. No external notification or payment is implied by a reservation.
+Portraits load from Unsplash and fonts from Google Fonts, with local avatar/system-font fallbacks. Gmail notifications are optional and require the configuration above. Password recovery email, an integrated video classroom, and an online payment processor are not included. The app uses password sign-in, in-app messages, externally arranged lessons, and pay-later reservations.

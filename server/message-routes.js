@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { query } from './db.js';
 import { authenticated,parse,integerId,uuid,text,fail } from './security.js';
 import { mapMessage } from './mappers.js';
+import { notifyMessage } from './notifications.js';
 export const messageRoutes=Router();
 messageRoutes.use(authenticated);
 const conversationInput=z.object({tutorId:integerId,learnerId:uuid.optional()});
@@ -40,5 +41,6 @@ messageRoutes.post('/messages',async(req,res)=>{
   const input=parse(conversationInput.extend({body:text(1,4000)}),req.body);const {tutor,learnerId}=await conversation(req,input);
   if(!tutor.user_id) fail(409,'This is a sample tutor profile and cannot receive messages. Choose a community tutor instead.');
   const {rows}=await query(`INSERT INTO verbal.messages(sender_id,learner_id,tutor_id,body) VALUES($1,$2,$3,$4) RETURNING id,body,sender_id,created_at`,[req.user.id,learnerId,tutor.id,input.body]);
+  await notifyMessage(tutor.id,learnerId,req.user.id);
   res.status(201).json({message:mapMessage(rows[0])});
 });

@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { query, transaction } from './db.js';
+import { notifyWelcome } from './notifications.js';
 import { parse, text, passwordSchema, emailSchema, publicUser, hashPassword, verifyPassword, setSession, cookieName, cookieOptions, authenticated, rateLimit, fail, lockSchedule } from './security.js';
 
 export const authRoutes = Router();
@@ -15,6 +16,7 @@ authRoutes.post('/auth/register', rateLimit('register',30), async (req,res) => {
     return rows[0];
   });
   await setSession(res,user.id);
+  await notifyWelcome(user);
   res.status(201).json({user:publicUser(user)});
 });
 authRoutes.post('/auth/login', rateLimit('login-ip',50), rateLimit('login-account',10,req=>String(req.body?.email || '').trim().toLowerCase().slice(0,254)), async (req,res) => {

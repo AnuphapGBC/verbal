@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { CalendarDays, GraduationCap, Pause, Play, RefreshCw, Search, ShieldCheck, Users } from 'lucide-react';
+import { Bell, CalendarDays, CheckCircle2, CircleAlert, ExternalLink, GraduationCap, KeyRound, Mail, Pause, Play, RefreshCw, Search, ShieldCheck, Users } from 'lucide-react';
 import { api, dateTime } from './api';
 import './admin.css';
 
@@ -16,6 +16,72 @@ function TutorTable({ tutors, busy, onToggle }) {
 
 function BookingTable({ bookings }) {
   return <div className="admin-table-wrap"><table className="admin-table"><caption className="sr-only">Latest lesson reservations</caption><thead><tr><th scope="col">Student</th><th scope="col">Tutor</th><th scope="col">Lesson time</th><th scope="col">Status</th><th scope="col">Price</th></tr></thead><tbody>{bookings.map(booking => <tr key={booking.id}><td><strong>{booking.studentName}</strong></td><td>{booking.tutorName}</td><td>{dateTime(booking.startsAt)}</td><td><span className={`status-pill ${booking.status}`}>{booking.status}</span></td><td>${booking.price} USD</td></tr>)}</tbody></table></div>;
+}
+
+function NotificationSettings() {
+  const [settings, setSettings] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [version, setVersion] = useState(0);
+  const [checking, setChecking] = useState(false);
+  const [connection, setConnection] = useState(null);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    setLoading(true); setError(''); setSettings(null); setConnection(null);
+    api('/admin/email', { signal: controller.signal })
+      .then(value => { if (!controller.signal.aborted) setSettings(value); })
+      .catch(err => { if (err.name !== 'AbortError') setError(err.message); })
+      .finally(() => { if (!controller.signal.aborted) setLoading(false); });
+    return () => controller.abort();
+  }, [version]);
+
+  async function checkConnection() {
+    setChecking(true); setConnection(null);
+    try {
+      const result = await api('/admin/email/verify', { method: 'POST', body: {} });
+      if (result.verified) {
+        setConnection({ verified: true, checkedAt: new Date().toISOString() });
+      } else {
+        const messages = {
+          missing_credentials: 'The Gmail credentials are missing. Add them in Vercel, redeploy, and refresh the status.',
+          authentication_failed: 'Gmail did not accept the credentials. Check the sender and Google app password in Vercel.',
+          connection_failed: 'Verbal could not connect to Gmail. Please try again shortly.',
+        };
+        setConnection({ verified: false, message: messages[result.reason] || 'The Gmail connection could not be verified. Please try again.' });
+      }
+    } catch (err) {
+      setConnection({ verified: false, message: err.message });
+    } finally { setChecking(false); }
+  }
+
+  const status = settings?.status === 'ready'
+    ? { title: 'Credentials configured', description: 'Email settings are present. Delivery has not been verified.', icon: CheckCircle2 }
+    : settings?.status === 'disabled'
+      ? { title: 'Notifications are off', description: 'Set MAIL_ENABLED to true in Vercel when you are ready to enable emails.', icon: Bell }
+      : { title: 'Setup needed', description: 'Add the missing settings in Vercel to enable Gmail notifications.', icon: CircleAlert };
+  const StatusIcon = status.icon;
+
+  return <div className="admin-notifications">
+    <div className="admin-notification-heading"><div><h3><Mail size={20} aria-hidden="true" /> Gmail notifications</h3><p>Manage the sender used for Verbal email notifications.</p></div><button className="outlined-btn" disabled={loading || checking} onClick={() => setVersion(value => value + 1)}><RefreshCw size={16} aria-hidden="true" /> Refresh status</button></div>
+    {loading && <p className="admin-email-loading" role="status"><RefreshCw size={18} aria-hidden="true" /> Checking email settings...</p>}
+    {error && <div className="form-error" role="alert"><p>{error}</p><button onClick={() => setVersion(value => value + 1)}><RefreshCw size={16} aria-hidden="true" /> Try again</button></div>}
+    {!loading && settings && <>
+      <div className={`admin-email-status ${settings.status}`} role="status"><StatusIcon size={23} aria-hidden="true" /><div><h4>{status.title}</h4><p>{status.description}</p></div></div>
+      <dl className="admin-email-details"><div><dt>Provider</dt><dd>Gmail</dd></div><div><dt>Sender email</dt><dd>{settings.sender || 'Not configured'}</dd></div><div><dt>Email delivery</dt><dd>{settings.enabled ? 'Enabled in settings' : 'Disabled in settings'}</dd></div></dl>
+      {settings.required?.length > 0 && <p className="admin-email-missing">Missing settings: {settings.required.map((key, index) => <React.Fragment key={key}>{index > 0 && ', '}<code>{key}</code></React.Fragment>)}.</p>}
+      <div className="admin-email-check"><button className="outlined-btn" disabled={!settings.configured || checking} onClick={checkConnection}><ShieldCheck size={17} aria-hidden="true" />{checking ? 'Checking Gmail connection...' : 'Check Gmail connection'}</button><p>This checks the Gmail connection and credentials. It does not send an email.</p></div>
+      {checking && <p className="admin-email-loading" role="status">Connecting to Gmail...</p>}
+      {connection && (connection.verified
+        ? <p className="admin-email-connection-success" role="status"><CheckCircle2 size={19} aria-hidden="true" /><span>Gmail accepted the connection and credentials at {dateTime(connection.checkedAt)}. No email was sent. This result is from this check only.</span></p>
+        : <p className="form-error" role="alert">{connection.message} No email was sent.</p>)}
+    </>}
+    <div className="admin-email-help"><h4><KeyRound size={18} aria-hidden="true" /> Connect the Gmail sender</h4><ol>
+      <li>Sign in to Google as <strong>verbal.notifications@gmail.com</strong> and enable <strong>2-Step Verification</strong>.</li>
+      <li>Create a Google app password for Verbal.</li>
+      <li>Open your Vercel project settings, then Environment Variables. Add the app password only as the sensitive <code>SMTP_PASS</code> variable.</li>
+    </ol><dl className="admin-email-env"><div><dt><code>SMTP_USER</code></dt><dd>verbal.notifications@gmail.com</dd></div><div><dt><code>MAIL_ENABLED</code></dt><dd>true</dd></div><div><dt><code>MAIL_FROM_NAME</code></dt><dd>Verbal Notifications</dd></div></dl><p>Redeploy after saving these settings, then refresh the status above. Keep the app password in Vercel; never paste it here.</p><div className="admin-email-links"><a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener noreferrer"><KeyRound size={16} aria-hidden="true" /> Google app passwords <ExternalLink size={14} aria-hidden="true" /></a><a href="https://vercel.com/dashboard" target="_blank" rel="noopener noreferrer"><ExternalLink size={16} aria-hidden="true" /> Open Vercel dashboard</a></div></div>
+  </div>;
 }
 
 export default function Admin({ user, notify }) {
@@ -63,12 +129,13 @@ export default function Admin({ user, notify }) {
         { label: 'Tutor accounts', value: stats.tutors, icon: GraduationCap }, { label: 'Administrators', value: stats.admins, icon: ShieldCheck },
         { label: 'All reservations', value: stats.bookings, icon: CalendarDays }, { label: 'Upcoming lessons', value: stats.upcomingLessons, icon: CalendarDays },
       ].map(({ label, value, icon: Icon }) => <div key={label}><span className="admin-stat-icon"><Icon size={21} /></span><span className="admin-stat-label">{label}</span><strong>{value}</strong></div>)}</div>
-      <section className="panel admin-records"><div className="panel-heading"><h2>Your community</h2><span className="admin-viewer"><ShieldCheck size={15} /> Administrator view</span></div><p className="muted">Browse the latest 100 records in each category. Lesson prices are in USD.</p>
-        <div className="admin-toolbar"><div className="tabs" aria-label="Record category">{[['users', 'Accounts'], ['tutors', 'Tutor profiles'], ['bookings', 'Lessons']].map(([value, label]) => <button key={value} aria-pressed={tab === value} onClick={() => { setTab(value); setSearch(''); }}>{label}</button>)}</div><label className="admin-search"><span>Search {tab === 'users' ? 'accounts' : tab === 'tutors' ? 'tutors' : 'lessons'}</span><span className="admin-search-input"><Search size={17} /><input type="search" maxLength={100} value={search} onChange={event => setSearch(event.target.value)} aria-label={`Search ${tab}`} placeholder={tab === 'users' ? 'Name, email, or role' : tab === 'tutors' ? 'Name or language' : 'Student, tutor, or status'} /></span></label></div>
-        <p className="admin-results" role="status">{tab === 'users' ? users.length : tab === 'tutors' ? tutors.length : bookings.length} {tab === 'users' ? 'accounts' : tab === 'tutors' ? 'profiles' : 'lessons'} shown{term ? ` for “${search.trim()}”` : ''}</p>
+      <section className="panel admin-records"><div className="panel-heading"><h2>{tab === 'notifications' ? 'Notifications' : 'Your community'}</h2><span className="admin-viewer"><ShieldCheck size={15} /> Administrator view</span></div><p className="muted">{tab === 'notifications' ? 'Review your email settings and check the Gmail connection.' : 'Browse the latest 100 records in each category. Lesson prices are in USD.'}</p>
+        <div className="admin-toolbar"><div className="tabs" aria-label="Admin category">{[['users', 'Accounts', Users], ['tutors', 'Tutor profiles', GraduationCap], ['bookings', 'Lessons', CalendarDays], ['notifications', 'Notifications', Bell]].map(([value, label, Icon]) => <button key={value} aria-pressed={tab === value} onClick={() => { setTab(value); setSearch(''); }}><Icon size={16} aria-hidden="true" />{label}</button>)}</div>{tab !== 'notifications' && <label className="admin-search"><span>Search {tab === 'users' ? 'accounts' : tab === 'tutors' ? 'tutors' : 'lessons'}</span><span className="admin-search-input"><Search size={17} /><input type="search" maxLength={100} value={search} onChange={event => setSearch(event.target.value)} aria-label={`Search ${tab}`} placeholder={tab === 'users' ? 'Name, email, or role' : tab === 'tutors' ? 'Name or language' : 'Student, tutor, or status'} /></span></label>}</div>
+        {tab !== 'notifications' && <p className="admin-results" role="status">{tab === 'users' ? users.length : tab === 'tutors' ? tutors.length : bookings.length} {tab === 'users' ? 'accounts' : tab === 'tutors' ? 'profiles' : 'lessons'} shown{term ? ` for “${search.trim()}”` : ''}</p>}
         {tab === 'users' && (users.length ? <UserTable users={users} /> : <p className="empty-inline">No accounts match your search.</p>)}
         {tab === 'tutors' && <><p className="admin-management-note">Pausing a profile stops new reservations. Existing lessons and conversations stay available.</p>{tutors.length ? <TutorTable tutors={tutors} busy={busy} onToggle={toggleTutor} /> : <p className="empty-inline">No tutor profiles match your search.</p>}</>}
         {tab === 'bookings' && (bookings.length ? <BookingTable bookings={bookings} /> : <p className="empty-inline">No lessons match your search.</p>)}
+        {tab === 'notifications' && <NotificationSettings />}
       </section>
     </>}
   </div>;

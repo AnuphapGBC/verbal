@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { query,transaction } from './db.js';
 import { authenticated,parse,uuid,text,fail,lockSchedule } from './security.js';
 import { bookingSelect,mapBooking } from './mappers.js';
+import { notifyBooking } from './notifications.js';
 export const bookingRoutes=Router();
 bookingRoutes.use(authenticated);
 // Serialize scheduling changes across instances. This also protects cross-role
@@ -33,7 +34,9 @@ bookingRoutes.post('/bookings',async(req,res)=>{
     if(conflict.rowCount) fail(409,'This time overlaps an existing lesson for you or the tutor.');
     const {rows:created}=await client.query(`INSERT INTO verbal.bookings(user_id,tutor_id,slot_id,price,goal) VALUES($1,$2,$3,$4,$5) RETURNING id`,[req.user.id,slot.tutor_id,slotId,slot.price,goal]);
     return mapBooking((await client.query(`${bookingSelect} WHERE b.id=$1`,[created[0].id])).rows[0]);
-  });res.status(201).json({booking});
+  });
+  await notifyBooking(booking.id,'booking_confirmed',req.user.name);
+  res.status(201).json({booking});
 });
 bookingRoutes.patch('/bookings/:id',async(req,res)=>{
   const id=parse(uuid,req.params.id);
@@ -51,7 +54,9 @@ bookingRoutes.patch('/bookings/:id',async(req,res)=>{
     await client.query('UPDATE verbal.bookings SET status=$2 WHERE id=$1',[id,action==='cancel'?'cancelled':'completed']);
     if(action==='complete') await client.query('UPDATE verbal.tutors SET lessons=lessons+1 WHERE id=$1',[b.tutor_id]);
     return mapBooking((await client.query(`${bookingSelect} WHERE b.id=$1`,[id])).rows[0]);
-  });res.json({booking});
+  });
+  await notifyBooking(booking.id,action==='cancel'?'booking_cancelled':'lesson_completed',req.user.name);
+  res.json({booking});
 });
 bookingRoutes.post('/bookings/:id/review',async(req,res)=>{
   const id=parse(uuid,req.params.id);
