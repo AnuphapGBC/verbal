@@ -49,7 +49,13 @@ function NotificationSettings() {
           authentication_failed: 'Gmail did not accept the credentials. Check the sender and Google app password in Vercel.',
           connection_failed: 'Verbal could not connect to Gmail. Please try again shortly.',
         };
-        setConnection({ verified: false, message: messages[result.reason] || 'The Gmail connection could not be verified. Please try again.' });
+        const passwordHints = {
+          assignment_prefix: 'Remove SMTP_PASS= from the saved value. Save only the generated Google app password.',
+          quoted_value: 'Remove the quote marks from the saved value. Save only the generated Google app password.',
+          unsupported_characters: 'The saved value contains characters outside the Google app password format. Generate a Google app password and copy only its 16-character code.',
+          wrong_length: 'The saved value does not contain a complete 16-character Google app password. Copy the full generated code.',
+        };
+        setConnection({ verified: false, message: (result.reason === 'invalid_password_format' && passwordHints[result.credentialHint]) || messages[result.reason] || 'The Gmail connection could not be verified. Please try again.' });
       }
     } catch (err) {
       setConnection({ verified: false, message: err.message });
@@ -72,7 +78,7 @@ function NotificationSettings() {
       <dl className="admin-email-details"><div><dt>Provider</dt><dd>Gmail</dd></div><div><dt>Sender email</dt><dd>{settings.sender || 'Not configured'}</dd></div><div><dt>Email delivery</dt><dd>{settings.enabled ? 'Enabled in settings' : 'Disabled in settings'}</dd></div></dl>
       {settings.required?.length > 0 && <p className="admin-email-missing">Settings needing attention: {settings.required.map((key, index) => <React.Fragment key={key}>{index > 0 && ', '}<code>{key}</code></React.Fragment>)}.</p>}
       {settings.credentialIssue && <p className="admin-email-missing">{settings.credentialIssue === 'missing' ? 'This deployment did not receive SMTP_PASS. Save it for Production in the verbal project, then redeploy.' : 'This deployment received SMTP_PASS, but it does not match the expected app password format. Use the generated 16-character Google app password without quotes.'}</p>}
-      <div className="admin-email-check"><button className="outlined-btn" disabled={!settings.configured || checking} onClick={checkConnection}><ShieldCheck size={17} aria-hidden="true" />{checking ? 'Checking Gmail connection...' : 'Check Gmail connection'}</button><p>This checks the Gmail connection and credentials. It does not send an email.</p></div>
+      <div className="admin-email-check"><button className="outlined-btn" disabled={checking} onClick={checkConnection}><ShieldCheck size={17} aria-hidden="true" />{checking ? 'Checking Gmail connection...' : 'Check Gmail connection'}</button><p>This checks the saved settings and Gmail connection. It does not send an email.</p></div>
       {checking && <p className="admin-email-loading" role="status">Connecting to Gmail...</p>}
       {connection && (connection.verified
         ? <p className="admin-email-connection-success" role="status"><CheckCircle2 size={19} aria-hidden="true" /><span>Gmail accepted the connection and credentials at {dateTime(connection.checkedAt)}. No email was sent. This result is from this check only.</span></p>

@@ -2,6 +2,18 @@ import nodemailer from 'nodemailer';
 import { buildEmail } from './email-templates.js';
 
 const knownErrorCodes = new Set(['EAUTH', 'ECONNECTION', 'ECONNREFUSED', 'ECONNRESET', 'EDNS', 'ENOTFOUND', 'ETIMEDOUT', 'ESOCKET', 'ETLS', 'EENVELOPE', 'EMESSAGE', 'ESTREAM']);
+const credentialHintMessages = {
+  assignment_prefix: 'Paste only the Google app password into SMTP_PASS. Remove the SMTP_PASS= prefix, then save in Vercel Production.',
+  quoted_value: 'Remove any surrounding quotes from SMTP_PASS. Paste only the Google app password, then save in Vercel Production.',
+  unsupported_characters: 'SMTP_PASS contains characters outside the Google app password format. Generate a Google app password and paste only its 16-character code into Vercel Production; do not use your Gmail sign-in password.',
+  wrong_length: 'SMTP_PASS must contain the complete 16-character Google app password. Copy the generated code again and save it in Vercel Production.',
+};
+
+function passwordFormatHint(password) {
+  if (/^SMTP_PASS=/i.test(password)) return 'assignment_prefix';
+  if (/^[`'"\u2018\u2019\u201c\u201d]|[`'"\u2018\u2019\u201c\u201d]$/u.test(password)) return 'quoted_value';
+  return /[^A-Za-z0-9]/.test(password) ? 'unsupported_characters' : 'wrong_length';
+}
 
 function singleAddress(value) {
   if (typeof value !== 'string' || value.length > 254 || /[\u0000-\u0020\u007f]/.test(value)) return null;
@@ -21,10 +33,11 @@ function configuration(env) {
   const password = typeof env.SMTP_PASS === 'string' ? env.SMTP_PASS.replace(/\s/g, '') : '';
   const validPassword = /^[A-Za-z0-9]{16}$/.test(password);
   const credentialIssue = validPassword ? null : password ? 'invalid_format' : 'missing';
+  const credentialHint = credentialIssue === 'invalid_format' ? passwordFormatHint(password) : null;
   const required = [];
   if (!sender) required.push('SMTP_USER');
   if (!validPassword) required.push('SMTP_PASS');
-  return { sender, password: validPassword ? password : null, credentialIssue, required, enabled: env.MAIL_ENABLED === 'true' };
+  return { sender, password: validPassword ? password : null, credentialIssue, credentialHint, required, enabled: env.MAIL_ENABLED === 'true' };
 }
 
 /** Safe to expose in health/admin responses: no credentials are included. */
@@ -77,7 +90,8 @@ export async function verifyEmailConnection(options = {}) {
   const config = configuration(options.env || process.env);
   if (config.credentialIssue === 'invalid_format') return {
     verified: false, reason: 'invalid_password_format',
-    error: 'SMTP_PASS must contain only the 16-character Google app password. Replace it in Vercel Production and save; do not use your Gmail sign-in password.',
+    credentialHint: config.credentialHint,
+    error: credentialHintMessages[config.credentialHint],
   };
   if (config.required.length) return {
     verified: false, reason: 'missing_credentials',

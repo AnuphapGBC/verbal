@@ -68,6 +68,39 @@ test('copied Google app password whitespace is normalized and diagnostics reveal
   }
 });
 
+test('format verification returns only fixed corrective hints without contacting SMTP', async t => {
+  let calls = 0;
+  const logs = [];
+  t.mock.method(console, 'warn', (...values) => logs.push(values));
+  const examples = [
+    ['SMTP_PASS=abcdefghijklmnop', 'assignment_prefix', /Remove the SMTP_PASS= prefix/],
+    [' smtp_pass = abcd efgh ijkl mnop\n', 'assignment_prefix', /Remove the SMTP_PASS= prefix/],
+    ['"abcdefghijklmnop"', 'quoted_value', /Remove any surrounding quotes/],
+    ["'abcdefghijklmnop", 'quoted_value', /Remove any surrounding quotes/],
+    ['abcdefghijklmnop\u201d', 'quoted_value', /Remove any surrounding quotes/],
+    ['abcdefghijklmn!p', 'unsupported_characters', /Generate a Google app password/],
+    ['abcdefghijklmn\u200bop', 'unsupported_characters', /Generate a Google app password/],
+    ['abcdefghijklmn\u00f8p', 'unsupported_characters', /Generate a Google app password/],
+    ['abcdefghijklmno', 'wrong_length', /complete 16-character Google app password/],
+    ['abcdefghijklmnopq', 'wrong_length', /complete 16-character Google app password/],
+  ];
+  for (const [SMTP_PASS, credentialHint, expectedAction] of examples) {
+    const result = await verifyEmailConnection({
+      env: { ...env, SMTP_PASS }, createTransport() { calls++; throw new Error('Must not connect'); },
+    });
+    assert.equal(result.verified, false);
+    assert.equal(result.reason, 'invalid_password_format');
+    assert.equal(result.credentialHint, credentialHint);
+    assert.match(result.error, expectedAction);
+    assert.deepEqual(Object.keys(result).sort(), ['credentialHint', 'error', 'reason', 'verified']);
+    assert.doesNotMatch(JSON.stringify(result), /abcdefghijklmn|passwordLength|credentialLength|hash/i);
+    assert.ok(!JSON.stringify(result).includes(SMTP_PASS));
+    assert.ok(!Object.hasOwn(emailStatus({ ...env, SMTP_PASS }), 'credentialHint'));
+  }
+  assert.equal(calls, 0);
+  assert.deepEqual(logs, []);
+});
+
 test('single recipients are validated and reserved test domains never contact SMTP', async () => {
   let calls = 0;
   const transport = { async sendMail() { calls++; } };
