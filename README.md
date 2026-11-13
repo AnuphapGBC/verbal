@@ -2,6 +2,8 @@
 
 A full-stack language-tutor marketplace inspired by Preply. React + Vite frontend, Express API, and Neon PostgreSQL. Reservations are **pay later**, as requested; the app does not collect card details or charge anyone.
 
+The interface now has its own language-club identity: cream, deep teal, coral, a conversation-mark logo, labelled filters, and a full browsable tutor list. Learner pages highlight the next real lesson, while teaching and admin pages share the same readable workspace. Booking shows a local date, time, price, and confirmation; messages keep unsent drafts when switching conversations or refreshing. The visual and accessibility direction is documented in `DESIGN.md`.
+
 ## Start
 
 Requirements: Node.js 22.12+ and npm. This workspace already has a private `.env`, migrated database, and sample tutor data.
@@ -32,6 +34,25 @@ The connection string belongs only in server environment variables. Never give i
 - **Teaching:** self-published tutor profiles, pricing, availability management, learner reservations, and completion after the lesson end time. Tutor profiles are not independently verified.
 - **Messages:** private learner/tutor conversations with automatic refresh. Learners can contact a real tutor before booking; tutors can reply to a conversation or contact their booked learner. Arrange the actual meeting method in messages.
 - **Reviews:** only the learner of a completed lesson can publish one review for it. Public tutor ratings/counts come from those reviews and are recalculated after account deletion.
+- **Administration:** a protected admin overview of accounts, tutors, and lessons; admins can pause/resume tutor listings. Pausing stops new reservations and discovery while existing lessons and private conversations remain accessible. Public signup cannot assign the admin role.
+
+## Test accounts
+
+Run `npm run db:test-users` to create one admin, two tutors, and two students in the configured database. These five persistent accounts have unique randomly generated passwords stored in **`.env.test-accounts.json`** in this folder. That file is excluded from Git and Vercel uploads; it is not included in the browser bundle or any API response.
+
+| Role | Email |
+| --- | --- |
+| Admin | `admin@test.verbal.invalid` |
+| English tutor | `tutor.english@test.verbal.invalid` |
+| Spanish tutor | `tutor.spanish@test.verbal.invalid` |
+| Student | `student.one@test.verbal.invalid` |
+| Student | `student.two@test.verbal.invalid` |
+
+The addresses intentionally do not receive mail. Use the email/password pairs to log in normally. The admin opens `#/admin`; tutors use Teaching; students use My lessons. Both tutor profiles explicitly identify themselves as test profiles and start with two available slots per day for the next 14 days. These are functional accounts for booking and messaging tests, and no real lesson is offered.
+
+The script preserves existing test passwords and data on re-runs and extends availability without duplicating slots. It refuses to overwrite real users, changed test passwords, or mismatched fixture identities. Keep the credential file if you want to rerun the script. `npm run check:test-users` verifies sign-in and permissions for the five accounts without making reservations or changing their passwords.
+
+The database's internal student role is named `learner`. Admin accounts are provisioned only through the trusted server-side seed script, not through signup or profile edits. A hosted admin dashboard requires deployment of the latest code; creating accounts in PostgreSQL alone does not update the deployed frontend.
 
 Six starter profiles and their availability/reviews are explicitly marked **sample**. Their reservations test the app; no real lesson takes place, and sample profiles cannot receive messages. Create a tutor account to publish a real profile; open a separate browser profile/private window for a learner account to try both sides.
 
@@ -57,6 +78,8 @@ npm run check:production
 Integration tests use three uniquely named temporary accounts in the configured database. They exercise the real API, cancel reservations, and remove their own accounts. Tests cover sessions, password changes, origin checks, validation, access isolation, concurrent/overlapping reservations, tutor publishing, messaging, export/deletion, completion, and real reviews. A test moves one of its own lesson fixtures into the past to exercise completion. They never update other users' data. `npm test` skips the database suite unless `RUN_DB_TESTS=1` is set; `npm run test:db` sets that opt-in explicitly.
 
 While `npm run dev` is running, `npm run smoke` checks the frontend, Vite API proxy, filters, and database health. Browser visual QA was unavailable in the build environment.
+
+`npm test` also runs frontend interaction checks with a simulated DOM and mocked API responses: password visibility, booking date pagination and conflict recovery, tutor list/filter behavior, and message draft retention. These tests do not access the database. They complement the production build and API checks; native visual browser approval timed out during the redesign, so rendered responsive screenshots were not verified.
 
 ## Production
 

@@ -7,7 +7,9 @@ export const messageRoutes=Router();
 messageRoutes.use(authenticated);
 const conversationInput=z.object({tutorId:integerId,learnerId:uuid.optional()});
 async function conversation(req,input) {
-  const {rows}=await query('SELECT id,user_id,name,image,is_demo FROM verbal.tutors WHERE id=$1 AND active=true',[input.tutorId]);
+  // Pausing a listing stops discovery and new reservations, not conversations
+  // needed to coordinate or cancel a lesson that was already arranged.
+  const {rows}=await query('SELECT id,user_id,name,image,is_demo FROM verbal.tutors WHERE id=$1',[input.tutorId]);
   const tutor=rows[0];
   if(!tutor) fail(404,'Tutor not found.');
   const learnerId=input.learnerId||req.user.id;

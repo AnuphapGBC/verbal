@@ -10,6 +10,7 @@ import { authRoutes } from './auth-routes.js';
 import { tutorRoutes } from './tutor-routes.js';
 import { bookingRoutes } from './booking-routes.js';
 import { messageRoutes } from './message-routes.js';
+import { adminRoutes } from './admin-routes.js';
 
 export function createApp() {
   const app=express();
@@ -36,6 +37,7 @@ export function createApp() {
     res.json({status:'ok',database:'connected'});
   });
   app.use('/api',rateLimit('api',1000),session,authRoutes,tutorRoutes);
+  app.use('/api/admin',adminRoutes);
   // Keep authenticated catch-all router middleware scoped to its own paths.
   app.use('/api', (req,res,next)=>{
     if(req.path.startsWith('/bookings')) return bookingRoutes(req,res,next);

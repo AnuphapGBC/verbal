@@ -64,7 +64,7 @@ tutorRoutes.post('/teaching',authenticated,async(req,res)=>{
     const {rows}=await client.query(`INSERT INTO verbal.tutors(user_id,name,country,flag,language,native,price,tag,bio,image)
       VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,'') ON CONFLICT(user_id) DO NOTHING RETURNING *`,[req.user.id,d.name,d.country,d.flag,d.language,d.native,d.price,d.tag,d.bio]);
     if(!rows[0]) fail(409,'You already have a tutor profile.');
-    await client.query("UPDATE verbal.users SET role='tutor' WHERE id=$1",[req.user.id]);return rows[0];
+    await client.query("UPDATE verbal.users SET role=CASE WHEN role='learner' THEN 'tutor' ELSE role END WHERE id=$1",[req.user.id]);return rows[0];
   });res.status(201).json({tutor:mapTutor(tutor)});
 });
 tutorRoutes.patch('/teaching',authenticated,async(req,res)=>{
