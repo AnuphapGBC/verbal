@@ -2,7 +2,9 @@ import { attachDatabasePool } from '@vercel/functions';
 import { pool } from '../server/db.js';
 import { createApp } from '../server/app.js';
 
-// Vercel manages HTTP listeners. Reuse the app and pool across invocations;
+// vercel.json explicitly routes /api/* here, preserving the request URL for
+// Express. A bracket-named file is not a multi-segment catch-all in generic Vite
+// projects. Vercel manages HTTP listeners. Reuse the app and pool across invocations;
 // release idle database connections before a Fluid Compute instance suspends.
 attachDatabasePool(pool);
 const app = createApp();

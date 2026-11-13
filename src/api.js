@@ -18,7 +18,10 @@ export async function api(path, options = {}) {
   }
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
-    const error = new Error(data.error || 'Something went wrong. Please try again.');
+    const fallback=response.status===404
+      ? 'This service could not be found. Please refresh the page; if it continues, the site needs a deployment update.'
+      : 'Something went wrong. Please try again.';
+    const error = new Error(data.error || fallback);
     error.status = response.status;
     throw error;
   }

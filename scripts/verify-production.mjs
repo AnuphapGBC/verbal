@@ -3,7 +3,7 @@ import { once } from 'node:events';
 process.env.NODE_ENV='production';
 process.env.APP_ORIGIN='https://verbal.example';
 const { default: app }=process.argv.includes('--vercel')
-  ? await import('../api/[...path].js')
+  ? await import('../api/index.js')
   : {default:(await import('../server/app.js')).createApp()};
 const { pool }=await import('../server/db.js');
 const server=app.listen(0,'127.0.0.1');
@@ -25,6 +25,12 @@ try {
   const health=await fetch(`${base}/api/health`);
   assert.equal(health.status,200);
   assert.equal((await health.json()).database,'connected');
+  // A one-segment health check alone missed a deployed nested-route 404.
+  // Verify a nested POST reaches auth validation without submitting credentials.
+  const login=await fetch(`${base}/api/auth/login`,{method:'POST',headers:{Origin:'https://verbal.example','Content-Type':'application/json'},body:'{}'});
+  assert.equal(login.status,422);
+  assert.match(login.headers.get('content-type'),/application\/json/);
+  assert.ok((await login.json()).error);
   const unknown=await fetch(`${base}/api/not-an-endpoint`);
   assert.equal(unknown.status,404);
   assert.equal((await unknown.json()).error,'API endpoint not found.');

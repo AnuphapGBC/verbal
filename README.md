@@ -85,7 +85,7 @@ While `npm run dev` is running, `npm run smoke` checks the frontend, Vite API pr
 
 ### Vercel
 
-The repository includes a Vite frontend and `api/[...path].js` for the Express backend. Keep the **Vite** framework preset. The function preserves `/api/*` URLs, and `vercel.json` excludes API requests from the SPA fallback.
+The repository includes a Vite frontend and `api/index.js` for the Express backend. Keep the **Vite** framework preset. An explicit `/api/:path*` rewrite sends every API path, including nested auth paths, to that shared function while preserving the original URL for Express. The SPA fallback excludes API requests. Bracket-named catch-all files are not used for the generic Vite function router.
 
 Add these variables to the **Production** environment, then deploy the latest code:
 
