@@ -22,8 +22,8 @@ test('mail remains explicitly opt-in without constructing an SMTP transport', as
 test('Gmail configuration rejects ordinary passwords and alternate or injected senders', async () => {
   let calls = 0;
   for (const change of [
-    { SMTP_PASS: '' }, { SMTP_PASS: 'regular-password!' }, { SMTP_PASS: 'abcdefghijklmnop\n' },
-    { SMTP_PASS: 'abcd\tefghijklmnop' }, { SMTP_USER: 'sender@work.com' },
+    { SMTP_PASS: '' }, { SMTP_PASS: 'regular-password!' }, { SMTP_PASS: '"abcdefghijklmnop"' },
+    { SMTP_PASS: 'abcdefghijklmno' }, { SMTP_PASS: 'abcdefghijklmnopq' }, { SMTP_USER: 'sender@work.com' },
     { SMTP_USER: 'Sender <sender@gmail.com>' }, { SMTP_USER: 'sender@gmail.com\r\nBcc: hidden@inbox.com' },
     { SMTP_USER: 'one@gmail.com,two@gmail.com' },
   ]) {
@@ -32,9 +32,40 @@ test('Gmail configuration rejects ordinary passwords and alternate or injected s
     assert.deepEqual(await sendNotification(notification, { env: invalid, createTransport() { calls++; } }), { sent: false, reason: 'missing_credentials' });
   }
   assert.equal(calls, 0);
-  assert.deepEqual(emailStatus(env), { provider: 'gmail', sender: env.SMTP_USER, enabled: true, configured: true, status: 'ready', required: [] });
+  assert.deepEqual(emailStatus(env), { provider: 'gmail', sender: env.SMTP_USER, enabled: true, configured: true, status: 'ready', required: [], credentialIssue: null });
   assert.doesNotMatch(JSON.stringify(emailStatus(env)), /abcd|efgh|pass/i);
   assert.deepEqual(emailStatus({}).required, ['SMTP_USER', 'SMTP_PASS']);
+});
+
+test('copied Google app password whitespace is normalized and diagnostics reveal only state', async () => {
+  const copied = '\r\n abcd\u00a0efgh\tijkl\nmnop \r\n';
+  let receivedPassword;
+  assert.equal(emailStatus({ ...env, SMTP_PASS: copied }).credentialIssue, null);
+  assert.deepEqual(await verifyEmailConnection({
+    env: { ...env, SMTP_PASS: copied },
+    createTransport(options) {
+      receivedPassword = options.auth.pass;
+      return { async verify() {}, close() {} };
+    },
+  }), { verified: true });
+  assert.equal(receivedPassword, 'abcdefghijklmnop');
+  for (const SMTP_PASS of [undefined, '', ' \r\n\u00a0\t']) {
+    const status = emailStatus({ ...env, SMTP_PASS });
+    assert.equal(status.credentialIssue, 'missing');
+    assert.equal(status.configured, false);
+  }
+  for (const SMTP_PASS of ['secret-punctuation!', '"abcdefghijklmnop"', 'abcdefghijklmnopq']) {
+    const invalid = { ...env, SMTP_PASS };
+    const status = emailStatus(invalid);
+    assert.equal(status.credentialIssue, 'invalid_format');
+    const result = await verifyEmailConnection({ env: invalid, createTransport() { throw new Error('Must not connect'); } });
+    assert.equal(result.reason, 'invalid_password_format');
+    assert.equal(result.verified, false);
+    const response = JSON.stringify({ status, result });
+    assert.ok(!response.includes(SMTP_PASS));
+    assert.doesNotMatch(response, /secret-punctuation|abcdefghijklmnop|passwordLength|credentialLength/);
+    assert.deepEqual(Object.keys(status).sort(), ['configured', 'credentialIssue', 'enabled', 'provider', 'required', 'sender', 'status']);
+  }
 });
 
 test('single recipients are validated and reserved test domains never contact SMTP', async () => {

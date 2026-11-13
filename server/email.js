@@ -16,14 +16,15 @@ function singleAddress(value) {
 function configuration(env) {
   const candidate = singleAddress(env.SMTP_USER);
   const sender = candidate?.split('@')[1] === 'gmail.com' ? candidate : null;
-  // Google displays app passwords in four groups. Ordinary account passwords
-  // and values containing punctuation or line breaks never configure SMTP.
-  const password = typeof env.SMTP_PASS === 'string' ? env.SMTP_PASS.replace(/ /g, '') : '';
+  // Google displays app passwords in groups. Ignore whitespace copied with
+  // those groups, while rejecting punctuation, quotes, and other formats.
+  const password = typeof env.SMTP_PASS === 'string' ? env.SMTP_PASS.replace(/\s/g, '') : '';
   const validPassword = /^[A-Za-z0-9]{16}$/.test(password);
+  const credentialIssue = validPassword ? null : password ? 'invalid_format' : 'missing';
   const required = [];
   if (!sender) required.push('SMTP_USER');
   if (!validPassword) required.push('SMTP_PASS');
-  return { sender, password: validPassword ? password : null, required, enabled: env.MAIL_ENABLED === 'true' };
+  return { sender, password: validPassword ? password : null, credentialIssue, required, enabled: env.MAIL_ENABLED === 'true' };
 }
 
 /** Safe to expose in health/admin responses: no credentials are included. */
@@ -33,7 +34,7 @@ export function emailStatus(env = process.env) {
   return {
     provider: 'gmail', sender: config.sender, enabled: config.enabled, configured,
     status: !config.enabled ? 'disabled' : configured ? 'ready' : 'missing_credentials',
-    required: config.required,
+    required: config.required, credentialIssue: config.credentialIssue,
   };
 }
 
@@ -74,6 +75,10 @@ function closeOwnedTransport(transport, options) {
 /** Verify SMTP authentication without sending an email, even while mail is off. */
 export async function verifyEmailConnection(options = {}) {
   const config = configuration(options.env || process.env);
+  if (config.credentialIssue === 'invalid_format') return {
+    verified: false, reason: 'invalid_password_format',
+    error: 'SMTP_PASS must contain only the 16-character Google app password. Replace it in Vercel Production and save; do not use your Gmail sign-in password.',
+  };
   if (config.required.length) return {
     verified: false, reason: 'missing_credentials',
     error: 'Add a Gmail address and a 16-character Google app password in SMTP_USER and SMTP_PASS.',

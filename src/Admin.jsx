@@ -45,6 +45,7 @@ function NotificationSettings() {
       } else {
         const messages = {
           missing_credentials: 'The Gmail credentials are missing. Add them in Vercel, redeploy, and refresh the status.',
+          invalid_password_format: 'SMTP_PASS is present, but its format does not match a Google app password. Replace it in Vercel with the generated 16-character password, save, and redeploy.',
           authentication_failed: 'Gmail did not accept the credentials. Check the sender and Google app password in Vercel.',
           connection_failed: 'Verbal could not connect to Gmail. Please try again shortly.',
         };
@@ -58,7 +59,7 @@ function NotificationSettings() {
   const status = settings?.status === 'ready'
     ? { title: 'Credentials configured', description: 'Email settings are present. Delivery has not been verified.', icon: CheckCircle2 }
     : settings?.status === 'disabled'
-      ? { title: 'Notifications are off', description: 'Set MAIL_ENABLED to true in Vercel when you are ready to enable emails.', icon: Bell }
+      ? { title: 'Notifications are off', description: 'Check the Gmail connection before setting MAIL_ENABLED to true in Vercel.', icon: Bell }
       : { title: 'Setup needed', description: 'Add the missing settings in Vercel to enable Gmail notifications.', icon: CircleAlert };
   const StatusIcon = status.icon;
 
@@ -69,7 +70,8 @@ function NotificationSettings() {
     {!loading && settings && <>
       <div className={`admin-email-status ${settings.status}`} role="status"><StatusIcon size={23} aria-hidden="true" /><div><h4>{status.title}</h4><p>{status.description}</p></div></div>
       <dl className="admin-email-details"><div><dt>Provider</dt><dd>Gmail</dd></div><div><dt>Sender email</dt><dd>{settings.sender || 'Not configured'}</dd></div><div><dt>Email delivery</dt><dd>{settings.enabled ? 'Enabled in settings' : 'Disabled in settings'}</dd></div></dl>
-      {settings.required?.length > 0 && <p className="admin-email-missing">Missing settings: {settings.required.map((key, index) => <React.Fragment key={key}>{index > 0 && ', '}<code>{key}</code></React.Fragment>)}.</p>}
+      {settings.required?.length > 0 && <p className="admin-email-missing">Settings needing attention: {settings.required.map((key, index) => <React.Fragment key={key}>{index > 0 && ', '}<code>{key}</code></React.Fragment>)}.</p>}
+      {settings.credentialIssue && <p className="admin-email-missing">{settings.credentialIssue === 'missing' ? 'This deployment did not receive SMTP_PASS. Save it for Production in the verbal project, then redeploy.' : 'This deployment received SMTP_PASS, but it does not match the expected app password format. Use the generated 16-character Google app password without quotes.'}</p>}
       <div className="admin-email-check"><button className="outlined-btn" disabled={!settings.configured || checking} onClick={checkConnection}><ShieldCheck size={17} aria-hidden="true" />{checking ? 'Checking Gmail connection...' : 'Check Gmail connection'}</button><p>This checks the Gmail connection and credentials. It does not send an email.</p></div>
       {checking && <p className="admin-email-loading" role="status">Connecting to Gmail...</p>}
       {connection && (connection.verified
