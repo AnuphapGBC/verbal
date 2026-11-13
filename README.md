@@ -60,6 +60,26 @@ While `npm run dev` is running, `npm run smoke` checks the frontend, Vite API pr
 
 ## Production
 
+### Vercel
+
+The repository includes a Vite frontend and `api/[...path].js` for the Express backend. Keep the **Vite** framework preset. The function preserves `/api/*` URLs, and `vercel.json` excludes API requests from the SPA fallback.
+
+Add these variables to the **Production** environment, then deploy the latest code:
+
+| Key | Type | Value |
+| --- | --- | --- |
+| `DATABASE_URL` | Secret | The PostgreSQL connection URL from your private `.env`; omit the `psql` command and surrounding quotes. |
+| `APP_ORIGIN` | Config | Your exact production HTTPS origin, e.g. `https://verbal-fawn.vercel.app`, without a trailing slash. |
+| `NODE_ENV` | Config | `production` |
+
+`PORT` and `DIRECT_DATABASE_URL` are not required by the Vercel runtime. Do not prefix `DATABASE_URL` with `VITE_`. The database is already migrated; deployment does not run migrations or seeds. Give previews their own database and matching `APP_ORIGIN` rather than sharing production credentials. Changing Vercel variables requires a new deployment. This local adapter has not been deployed automatically.
+
+The Vercel adapter trusts the platform proxy for client-IP rate limits; no extra `TRUST_PROXY` variable is needed there. `.vercelignore` also excludes private environment files from CLI uploads.
+
+The standalone server's hourly cleanup loop does not run inside Vercel Functions. Session expiry and rate-limit reset are enforced on every request, so expired records cannot authenticate or extend a throttle; pruning old records on Vercel would require a scheduled maintenance job.
+
+### Standalone Node server
+
 ```sh
 npm ci
 npm run db:migrate

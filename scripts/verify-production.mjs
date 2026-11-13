@@ -2,9 +2,11 @@ import assert from 'node:assert/strict';
 import { once } from 'node:events';
 process.env.NODE_ENV='production';
 process.env.APP_ORIGIN='https://verbal.example';
-const { createApp }=await import('../server/app.js');
+const { default: app }=process.argv.includes('--vercel')
+  ? await import('../api/[...path].js')
+  : {default:(await import('../server/app.js')).createApp()};
 const { pool }=await import('../server/db.js');
-const server=createApp().listen(0,'127.0.0.1');
+const server=app.listen(0,'127.0.0.1');
 await once(server,'listening');
 try {
   const base=`http://127.0.0.1:${server.address().port}`;
@@ -23,6 +25,9 @@ try {
   const health=await fetch(`${base}/api/health`);
   assert.equal(health.status,200);
   assert.equal((await health.json()).database,'connected');
+  const unknown=await fetch(`${base}/api/not-an-endpoint`);
+  assert.equal(unknown.status,404);
+  assert.equal((await unknown.json()).error,'API endpoint not found.');
   const blocked=await fetch(`${base}/api/auth/logout`,{method:'POST',headers:{Origin:'https://untrusted.example'}});
   assert.equal(blocked.status,403);
   console.log('PASS: production static assets, database health, security headers, origin guard, and credential isolation.');
