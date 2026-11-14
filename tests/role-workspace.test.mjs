@@ -33,6 +33,7 @@ test('role workspaces, public tutor links and profile photo controls remain usab
   const { default: userEvent } = await import('@testing-library/user-event');
   const { App } = await vite.ssrLoadModule('/src/main.jsx');
   const { default: ProfilePhoto, prepareProfilePhoto } = await vite.ssrLoadModule('/src/ProfilePhoto.jsx');
+  const { default: TutorGrowth } = await vite.ssrLoadModule('/src/TutorGrowth.jsx');
   const h = React.createElement; const user = userEvent.setup({ document: dom.window.document });
   const tutor = { id: 7, userId: 'other-tutor', name: 'Avery Tutor', language: 'English', price: 25, tag: 'A friendly conversation', bio: 'Friendly conversation lessons with practical goals and plenty of speaking time.', native: 'English', rating: 0, reviews: 0, image: '', isDemo: false };
   const account = role => ({ id: 'account-id', name: 'Test Person', email: 'test@example.invalid', goal: 'Conversation', role, image: '' });
@@ -77,6 +78,20 @@ test('role workspaces, public tutor links and profile photo controls remain usab
       assert.equal(screen.queryByRole('button', { name: /Reserve my lesson/ }), null);
       await user.click(screen.getAllByRole('button', { name: 'Close dialog' })[0]);
       await screen.findByRole('heading', { name: /Good teaching deserves/ });
+      cleanup();
+    });
+    await suite.test('an eligible tutor can activate the boost and sees its active state', async () => {
+      let activations = 0;
+      const boostState = () => ({ active: activations > 0, canBoost: activations === 0, endsAt: new Date(Date.now() + 86400000).toISOString(), nextAvailableAt: new Date(Date.now() + 7 * 86400000).toISOString() });
+      globalThis.fetch = (path, options) => {
+        if (path === '/api/teaching/growth') return reply({ tutor: { ...tutor, active: true }, stats: { savedBy: 0, learners: 0, completedLessons: 0, openSlots: 2 }, boost: boostState(), checklist: [{ id: 'photo', label: 'Add a clear profile photo', complete: true }], profilePath: '/#/tutor/7' });
+        assert.equal(path, '/api/teaching/boost'); assert.equal(options.method, 'POST'); activations += 1; return reply({ boost: boostState() });
+      };
+      render(h(TutorGrowth, { user: account('tutor'), onTeaching: noop, onSettings: noop, onPreview: noop }));
+      const button = await screen.findByRole('button', { name: 'Activate free boost' });
+      assert.equal(button.disabled, false); await user.click(button);
+      await screen.findByText(/Boost active until/);
+      assert.equal(activations, 1); assert.equal(screen.queryByRole('button', { name: 'Activate free boost' }), null);
       cleanup();
     });
     await suite.test('a chosen photo is prepared, previewed and saved without losing account details', async () => {

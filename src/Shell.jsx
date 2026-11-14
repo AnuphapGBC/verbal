@@ -60,15 +60,15 @@ export function WorkspaceNav({user,page,onNavigate,onTeach,onBrowse}) {
     <div className="space-label"><span className="eyebrow">{user?.role==='admin'?'YOUR COMMUNITY':user?.role==='tutor'?'YOUR TEACHING SPACE':'YOUR VERBAL SPACE'}</span><span>{staff?'A little progress, every day.':'Make yourself at home.'}</span></div>
     <nav className="workspace-nav" aria-label="Your workspace">{items.map(item=><button key={item.page} className={page===item.page?'active':''} aria-current={page===item.page?'page':undefined} onClick={()=>item.page==='teaching'?onTeach():onNavigate(item.page)}><item.icon size={21}/><span className="desktop-nav-label">{item.label}</span><span className="mobile-nav-label">{item.mobile}</span>{page===item.page&&<span className="nav-active-dot" aria-hidden="true"/>}</button>)}</nav>
     {staff?<div className="sidebar-note staff-sidebar-note"><span className="sidebar-note-icon">{user.role==='admin'?<ShieldCheck size={24}/>:<Rocket size={24}/>}</span><h2>{user.role==='admin'?'A community worth caring for.':'Your next student is out there.'}</h2><p>{user.role==='admin'?'Keep profiles welcoming and help your community thrive.':'Build a profile that helps the right students find you.'}</p><button onClick={()=>onNavigate(homePage(user))}>{user.role==='admin'?'Manage community':'Open growth tools'} <ArrowRight size={17}/></button></div>:<div className="sidebar-note"><span className="sidebar-note-icon"><MessageCircle size={24}/></span><h2>One hello can<br/>change your day.</h2><p>Find a tutor who makes you feel at home.</p><button onClick={onBrowse}>Meet your next tutor <ArrowRight size={17}/></button></div>}
-    <div className="sidebar-signature">Little by little.<br/><span>You’ll find your words.</span></div>
+    <div className="sidebar-signature">{staff?'Little connections.':'Little by little.'}<br/><span>{staff?'A lasting difference.':'You’ll find your words.'}</span></div>
   </div></aside>;
 }
 
 export function Footer({workspace,user,onNavigate,onBrowse,onTeach,onHelp}) {
   const staff=user?.role==='tutor'||user?.role==='admin';
   return <footer className={`site-footer${workspace?' site-footer-workspace':''}`}><div className="footer-inner">
-    <div className="footer-brand"><Brand onClick={()=>onNavigate('home')} compact/><p>Learn a language.<br/>Feel a little more connected.</p></div>
-    <nav aria-label="Footer navigation">{staff?<button onClick={()=>onNavigate(homePage(user))}>{user.role==='admin'?'Admin overview':'Grow your reach'}</button>:<button onClick={onBrowse}>Find a tutor</button>}<button onClick={onHelp}>How it works</button>{user?.role!=='admin'&&<button onClick={onTeach}>{user?.role==='tutor'?'Your teaching space':'Teach on Verbal'}</button>}</nav>
+    <div className="footer-brand"><Brand onClick={()=>onNavigate(staff?homePage(user):'home')} compact/><p>{staff?'Make a connection.':'Learn a language.'}<br/>{staff?'Make a little difference.':'Feel a little more connected.'}</p></div>
+    <nav aria-label="Footer navigation">{staff?<><button onClick={()=>onNavigate(homePage(user))}>{user.role==='admin'?'Admin overview':'Grow your reach'}</button><button onClick={()=>onNavigate('settings')}>Account settings</button></>:<><button onClick={onBrowse}>Find a tutor</button><button onClick={onHelp}>How it works</button></>}{user?.role!=='admin'&&<button onClick={onTeach}>{user?.role==='tutor'?'Your teaching space':'Teach on Verbal'}</button>}</nav>
     <div className="footer-note"><span><HeartHandshake size={18}/> Made for human connection.</span><small>© {new Date().getFullYear()} Verbal · English · USD</small></div>
   </div></footer>;
 }
