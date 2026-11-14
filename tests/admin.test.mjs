@@ -74,6 +74,7 @@ test('Admin permissions and tutor moderation preserve learner reservations', {
   try {
     await suite.test('public registration and account editing cannot grant admin access', async () => {
       status(await guest.request('/admin/overview'), 401, 'Guest admin overview');
+      status(await guest.request('/admin/students'), 401, 'Guest student search');
       status(await guest.request('/admin/tutors/1', { method: 'PATCH', body: { active: false } }), 401, 'Guest moderation');
       for (const account of [admin, tutor, student]) {
         const result = await account.request('/auth/register', {
@@ -89,6 +90,7 @@ test('Admin permissions and tutor moderation preserve learner reservations', {
       }), 200).user;
       assert.equal(edited.role, 'learner', 'Profile editing cannot grant privileges.');
       status(await student.request('/admin/overview'), 403);
+      status(await student.request('/admin/students'), 403, 'Student cannot search other students');
       // Promote only the admin fixture created by this test, never a persistent seed account.
       const promoted = await pool.query(`UPDATE verbal.users SET role='admin',is_test=true WHERE id=$1 AND email=$2 RETURNING id`, [admin.user.id, admin.email]);
       assert.equal(promoted.rowCount, 1);
@@ -99,6 +101,7 @@ test('Admin permissions and tutor moderation preserve learner reservations', {
       tutorId = status(await tutor.request('/teaching', { method: 'POST', body: profile(`Admin integration tutor ${marker}`) }), 201).tutor.id;
       assert.equal(status(await tutor.request('/session'), 200).user.role, 'tutor');
       status(await tutor.request('/admin/overview'), 403, 'Tutor has no admin access');
+      status(await tutor.request('/admin/students'), 403, 'Tutor cannot search students');
       status(await student.request(`/admin/tutors/${tutorId}`, { method: 'PATCH', body: { active: false } }), 403, 'Student cannot moderate');
       status(await tutor.request(`/admin/tutors/${tutorId}`, { method: 'PATCH', body: { active: false } }), 403, 'Tutor cannot moderate');
       const overview = status(await admin.request('/admin/overview'), 200);
@@ -113,6 +116,55 @@ test('Admin permissions and tutor moderation preserve learner reservations', {
       noSecrets(overview);
       status(await admin.request(`/admin/tutors/${tutorId}`, { method: 'PATCH', body: { active: 'false' } }), 422, 'Validate moderation boolean');
       status(await admin.request('/admin/tutors/2147483647', { method: 'PATCH', body: { active: false } }), 404, 'Unknown tutor');
+    });
+
+    await suite.test('admins can search students by name and email without exposing account secrets', async () => {
+      for (const search of ['ADMIN INTEGRATION STUDENT', student.email.toUpperCase()]) {
+        const result = status(await admin.request(`/admin/students?search=${encodeURIComponent(search)}`), 200);
+        const selected = result.students.find(entry => entry.id === student.user.id);
+        assert.ok(selected, 'Find the student fixture by name or email.');
+        assert.deepEqual(Object.keys(selected).sort(), ['email', 'id', 'image', 'isTest', 'name']);
+        assert.equal(selected.name, 'Admin integration student');
+        assert.equal(selected.email, student.email);
+        assert.equal(selected.image, '');
+        assert.equal(selected.isTest, false);
+        assert.ok(result.students.every(entry => entry.id !== tutor.user.id && entry.id !== admin.user.id), 'Search only student accounts.');
+        assert.ok(result.students.length <= 25);
+        assert.equal(typeof result.hasMore, 'boolean');
+        assert.equal(result.nextOffset, result.hasMore ? 25 : null);
+        noSecrets(result);
+      }
+      const missing = status(await admin.request(`/admin/students?search=${marker}-no-student`), 200);
+      assert.deepEqual(missing, { students: [], hasMore: false, nextOffset: null });
+      const literalWildcard = status(await admin.request(`/admin/students?search=${encodeURIComponent(`${marker}%`)}`), 200);
+      assert.deepEqual(literalWildcard, { students: [], hasMore: false, nextOffset: null });
+      status(await admin.request('/admin/students?offset=-1'), 422, 'Reject negative pagination offsets');
+      status(await admin.request('/admin/students?offset=1.5'), 422, 'Reject fractional pagination offsets');
+    });
+
+    await suite.test('student search paginates all matching accounts with stable ordering', async () => {
+      const prefix = `Student pagination ${marker} `;
+      const { rows: fixtures } = await pool.query(`INSERT INTO verbal.users(name,email,password_hash,is_test)
+        SELECT $1||lpad(sequence::text,2,'0'),$2||sequence||'@example.invalid','unused-test-password',true
+        FROM generate_series(1,26) AS fixture(sequence) RETURNING id`, [prefix, `student-pagination-${marker}-`]);
+      try {
+        const first = status(await admin.request(`/admin/students?search=${encodeURIComponent(prefix)}`), 200);
+        assert.equal(first.students.length, 25);
+        assert.equal(first.hasMore, true);
+        assert.equal(first.nextOffset, 25);
+        const second = status(await admin.request(`/admin/students?search=${encodeURIComponent(prefix)}&offset=${first.nextOffset}`), 200);
+        assert.equal(second.students.length, 1);
+        assert.equal(second.hasMore, false);
+        assert.equal(second.nextOffset, null);
+        const students = [...first.students, ...second.students];
+        assert.equal(new Set(students.map(entry => entry.id)).size, 26);
+        assert.deepEqual(students.map(entry => entry.name), Array.from({ length: 26 }, (_, index) => `${prefix}${String(index + 1).padStart(2, '0')}`));
+        assert.ok(students.every(entry => entry.isTest));
+        noSecrets(first);
+        noSecrets(second);
+      } finally {
+        await pool.query('DELETE FROM verbal.users WHERE id=ANY($1::uuid[]) AND is_test=true', [fixtures.map(entry => entry.id)]);
+      }
     });
 
     await suite.test('publishing an admin-owned tutor profile preserves admin privileges', async () => {

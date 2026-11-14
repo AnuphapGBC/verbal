@@ -13,6 +13,7 @@ import { messageRoutes } from './message-routes.js';
 import { adminRoutes } from './admin-routes.js';
 import { photoRoutes } from './photo-routes.js';
 import { growthRoutes } from './growth-routes.js';
+import { practiceRoutes } from './practice-routes.js';
 
 export function createApp() {
   const app=express();
@@ -24,6 +25,7 @@ export function createApp() {
   if(process.env.TRUST_PROXY==='1') app.set('trust proxy',1);
   app.use(helmet({contentSecurityPolicy:{directives:{defaultSrc:["'self'"],scriptSrc:["'self'"],styleSrc:["'self'","'unsafe-inline'",'https://fonts.googleapis.com'],imgSrc:["'self'",'data:','blob:','https://images.unsplash.com'],fontSrc:["'self'",'https://fonts.gstatic.com'],connectSrc:["'self'"],objectSrc:["'none'"],frameAncestors:["'none'"],upgradeInsecureRequests:production?[]:null}},strictTransportSecurity:production?undefined:false}));
   app.use('/api/account/photo',express.json({limit:'300kb'}));
+  app.use('/api/practice/sessions',express.json({limit:'80kb'}));
   app.use(express.json({limit:'24kb'}));
   app.use('/api',(req,res,next)=>{
     res.set('Cache-Control','no-store');
@@ -39,7 +41,7 @@ export function createApp() {
     await query('SELECT 1 FROM verbal.schema_migrations LIMIT 1');
     res.json({status:'ok',database:'connected'});
   });
-  app.use('/api',rateLimit('api',1000),session,authRoutes,photoRoutes,growthRoutes,tutorRoutes);
+  app.use('/api',rateLimit('api',1000),session,authRoutes,photoRoutes,growthRoutes,tutorRoutes,practiceRoutes);
   app.use('/api/admin',adminRoutes);
   // Keep authenticated catch-all router middleware scoped to its own paths.
   app.use('/api', (req,res,next)=>{

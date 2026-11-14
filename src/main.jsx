@@ -13,13 +13,15 @@ import Account from './Account';
 import Admin from './Admin';
 import TutorGrowth from './TutorGrowth';
 import { workspaceDestination, workspaceHome } from './roles';
+import Practice from './Practice';
+import PracticeRoom from './PracticeRoom';
 import './styles.css';
 import './workspace.css';
 import './reviews.css';
 
-const pages = ['dashboard', 'messages', 'teaching', 'settings', 'admin', 'growth'];
-const currentPage = () => pages.find(page => location.hash === `#/${page}`) || 'home';
-const pageTitles = { home:'Find your language tutor', dashboard:'My lessons', messages:'Messages', teaching:'Teaching', settings:'Account settings', admin:'Administration', growth:'Grow your reach' };
+const pages = ['dashboard', 'messages', 'teaching', 'settings', 'admin', 'growth', 'practice'];
+const currentPage = () => /^#\/practice\/[0-9a-f-]{36}$/i.test(location.hash) ? 'practice' : pages.find(page => location.hash === `#/${page}`) || 'home';
+const pageTitles = { home:'Find your language tutor', dashboard:'My lessons', messages:'Messages', teaching:'Teaching', settings:'Account settings', admin:'Administration', growth:'Grow your reach', practice:'Practice' };
 
 function Modal({ open, onClose, label, className='', children }) {
   const ref = useRef(null);
@@ -45,6 +47,7 @@ export function App() {
   const [page,setPage]=useState(currentPage);
   const [route,setRoute]=useState(()=>location.hash);
   const [teachingTab,setTeachingTab]=useState('schedule');
+  const [practiceStudent,setPracticeStudent]=useState(null);
   const [user,setUser]=useState(null);
   const [sessionLoading,setSessionLoading]=useState(true);
   const [sessionError,setSessionError]=useState('');
@@ -57,6 +60,7 @@ export function App() {
 
   useEffect(()=>{const change=()=>{setPage(currentPage());setRoute(location.hash);};window.addEventListener('hashchange',change);return()=>window.removeEventListener('hashchange',change);},[]);
   const profileId=/^#\/tutor\/([1-9]\d*)$/.exec(route)?.[1];
+  const practiceId=/^#\/practice\/([0-9a-f-]{36})$/i.exec(route)?.[1];
   const rolePage=profileId?'home':workspaceDestination(user,page);
   useEffect(()=>{
     if(!sessionLoading&&user&&rolePage!==page){history.replaceState(null,'',`#/${rolePage}`);setRoute(`#/${rolePage}`);setPage(rolePage);}
@@ -94,6 +98,8 @@ export function App() {
   }
   function teach() {navigate('teaching');if(!user)setAuth({reason:'Create an account to start your tutor profile.'});}
   function openTeaching(tab='schedule'){setTeachingTab(tab);navigate('teaching');}
+  function openPractice(student){setPracticeStudent(student||null);navigate('practice');}
+  function openPracticeSession(id){const next=`#/practice/${id}`;location.hash=next;setRoute(next);setPage('practice');}
   function openTutor(tutor){setModal({type:'tutor',tutor});navigate('home');const next=`#/tutor/${tutor.id}`;location.hash=next;setRoute(next);}
   function closeTutor(){setModal(null);if(profileId){history.replaceState(null,'','#/');setRoute('#/');setPage('home');}}
   function message(value) {
@@ -118,10 +124,11 @@ export function App() {
           {sessionLoading?<div className="loading-state" role="status">Getting your space ready…</div>:!user?
             <section className="workspace-page"><div className="welcome-gate"><span className="welcome-gate-icon"><MessageCircle size={32}/></span><div className="eyebrow">YOUR OWN LITTLE CORNER OF VERBAL</div><h1>A little hello.<br/>A fresh start.</h1><p>Sign in to see your lessons, talk with your tutor, and keep your learning in one place.</p><button className="dark-btn" onClick={()=>setAuth({})}>Log in or create an account <ArrowRight size={18}/></button><button className="text-link" onClick={browse}>I’d like to explore tutors first</button></div></section>:<>
             {rolePage==='dashboard'&&<Dashboard key={bookingsVersion} user={user} onBrowse={browse} onMessage={message} notify={setNotice}/>}
-            {rolePage==='admin'&&<Admin user={user} notify={setNotice}/>}
+            {rolePage==='admin'&&<Admin user={user} notify={setNotice} onPractice={openPractice}/>}
             {rolePage==='messages'&&<Messages user={user} initialConversation={conversation} onBrowse={browse}/>}
             {rolePage==='teaching'&&<Teaching user={user} initialTab={teachingTab} onUserChanged={refreshSession} onMessage={message} notify={setNotice}/>}
             {rolePage==='growth'&&<TutorGrowth user={user} onTeaching={openTeaching} onSettings={()=>navigate('settings')} onPreview={openTutor}/>}
+            {rolePage==='practice'&&(practiceId?<PracticeRoom key={practiceId} user={user} sessionId={practiceId} onBack={()=>navigate('practice')} onEnded={()=>setNotice('Practice ended. Saved notes and responses remain available.')} />:<Practice user={user} initialStudent={practiceStudent} onOpenSession={openPracticeSession} />)}
             {rolePage==='settings'&&<Account user={user} onUpdated={setUser} onLogout={logout} onDeleted={()=>{setUser(null);setConversation(null);navigate('home');setNotice('Your account and associated data have been deleted.');}} notify={setNotice}/>}
           </>}
         </div>

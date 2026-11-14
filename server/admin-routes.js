@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { query, transaction } from './db.js';
-import { authenticated, parse, integerId, fail, lockSchedule,rateLimit } from './security.js';
+import { authenticated, parse, integerId, fail, lockSchedule,rateLimit,publicUser } from './security.js';
 import { emailStatus,verifyEmailConnection } from './email.js';
 
 export const adminRoutes = Router();
@@ -13,6 +13,26 @@ adminRoutes.use(authenticated, (req, _res, next) => {
 adminRoutes.get('/email',(_req,res)=>res.json(emailStatus()));
 adminRoutes.post('/email/verify',rateLimit('email-verify',5,req=>req.user.id),async(_req,res)=>{
   res.json(await verifyEmailConnection());
+});
+
+adminRoutes.get('/students', async (req, res) => {
+  const { search, offset } = parse(z.object({
+    search: z.string().trim().max(100).default(''),
+    offset: z.coerce.number().int().min(0).max(2147483647).default(0),
+  }), req.query);
+  const pattern = `%${search.replace(/[\\%_]/g, '\\$&')}%`;
+  const { rows } = await query(`SELECT id,name,email,is_test,avatar_updated_at
+    FROM verbal.users WHERE role='learner' AND (name ILIKE $1 OR email ILIKE $1)
+    ORDER BY name,id LIMIT 26 OFFSET $2`, [pattern, offset]);
+  const hasMore = rows.length > 25;
+  res.json({
+    students: rows.slice(0, 25).map(student => ({
+      id: student.id, name: student.name, email: student.email,
+      isTest: student.is_test, image: publicUser(student).image,
+    })),
+    hasMore,
+    nextOffset: hasMore ? offset + 25 : null,
+  });
 });
 
 adminRoutes.get('/overview', async (_req, res) => {

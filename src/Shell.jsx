@@ -54,6 +54,7 @@ export function WorkspaceNav({user,page,onNavigate,onTeach,onBrowse}) {
   const staff=user?.role==='tutor'||user?.role==='admin';
   const items=[...(user?.role==='admin'?[{page:'admin',label:'Admin overview',mobile:'Admin',icon:ShieldCheck}]:user?.role==='tutor'?[{page:'growth',label:'Grow your reach',mobile:'Growth',icon:Rocket}]:[{page:'dashboard',label:'My lessons',mobile:'Lessons',icon:CalendarDays}]),
     {page:'messages',label:'Messages',mobile:'Messages',icon:MessageCircle},
+    ...(user?.role==='tutor'?[]:[{page:'practice',label:'Practice',mobile:'Practice',icon:BookOpen}]),
     ...(user?.role==='admin'?[]:[{page:'teaching',label:user?.role==='tutor'?'Teaching':'Start teaching',mobile:'Teaching',icon:GraduationCap}]),
     {page:'settings',label:'Account settings',mobile:'Settings',icon:Settings}];
   return <aside className="workspace-sidebar"><div className="workspace-sidebar-inner">

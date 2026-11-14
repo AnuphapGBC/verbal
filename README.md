@@ -36,6 +36,16 @@ The connection string belongs only in server environment variables. Never give i
 - **Reviews:** only the learner of a completed lesson can publish one review for it. Public tutor ratings/counts come from those reviews and are recalculated after account deletion.
 - **Administration:** a protected admin overview of accounts, tutors, and lessons; admins can pause/resume tutor listings. Pausing stops new reservations and discovery while existing lessons and private conversations remain accessible. Public signup cannot assign the admin role.
 
+## Administrator practice rooms
+
+An administrator can open **Practice** from the workspace or **Practice with a student** from Admin overview. Search any student by name or email, choose them, and start a room. The same active administrator/student pair reopens its existing room. No tutor profile, reservation, payment, or email invitation is created.
+
+The selected student opens **Practice** in their own account, or follows the room's copied join link after signing in. The administrator acts as the teacher under their own identity. Only that administrator and selected student can read the room; another administrator cannot enter someone else's practice session.
+
+The teacher edits and saves the lesson board. Both participants exchange text responses and feedback, which refresh automatically. Notes have conflict checks so another window cannot silently overwrite an unsaved draft. The teacher can end the session; its board and responses stay available to both participants. Ending prevents further changes. These are text practice rooms; voice/video meetings can be arranged using an external link in the board.
+
+Migration `007-practice-sessions.sql` creates the separate practice tables. Practice activity does not change marketplace lessons, ratings, reservations, or ordinary private conversations. It does not send notification email. Integration tests cover participant isolation, current administrator permissions, concurrent creation/notes/ending, and actual sender identity.
+
 ## Test accounts
 
 Tutors now land in **Grow your reach**, with real saved-by-students, booking, completion and available-time counts. Their workspace contains growth tools, teaching, messages and settings. Administrators land in **Admin overview**. Student onboarding and My lessons are shown only to students; legacy student-dashboard links redirect staff to their role's workspace.

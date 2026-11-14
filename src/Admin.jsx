@@ -92,7 +92,7 @@ function NotificationSettings() {
   </div>;
 }
 
-export default function Admin({ user, notify }) {
+export default function Admin({ user, notify, onPractice }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -129,7 +129,7 @@ export default function Admin({ user, notify }) {
   const bookings = (data?.bookings || []).filter(item => normalized(`${item.studentName} ${item.tutorName} ${item.status}`).includes(term));
   const stats = data?.stats;
   return <div className="workspace-page admin-page">
-    <div className="workspace-title"><div><div className="eyebrow"><ShieldCheck size={15} /> YOUR COMMUNITY, CARED FOR</div><h1>Admin overview.</h1><p>A clear view of the people, profiles, and lessons that make Verbal.</p></div><button className="outlined-btn" disabled={loading} onClick={() => setVersion(value => value + 1)}><RefreshCw size={17} /> Refresh overview</button></div>
+    <div className="workspace-title"><div><div className="eyebrow"><ShieldCheck size={15} /> YOUR COMMUNITY, CARED FOR</div><h1>Admin overview.</h1><p>A clear view of the people, profiles, and lessons that make Verbal.</p></div><div className="practice-room-actions">{onPractice&&<button className="dark-btn" onClick={()=>onPractice()}>Practice with a student</button>}<button className="outlined-btn" disabled={loading} onClick={() => setVersion(value => value + 1)}><RefreshCw size={17} /> Refresh overview</button></div></div>
     {error && <p className="form-error" role="alert">{error} <button onClick={() => setVersion(value => value + 1)}>Try again</button></p>}
     {loading ? <p className="loading-state" role="status">Loading the admin overview…</p> : data && <>
       <div className="admin-stats" aria-label="Marketplace totals">{[
