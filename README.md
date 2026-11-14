@@ -38,6 +38,14 @@ The connection string belongs only in server environment variables. Never give i
 
 ## Test accounts
 
+Tutors now land in **Grow your reach**, with real saved-by-students, booking, completion and available-time counts. Their workspace contains growth tools, teaching, messages and settings. Administrators land in **Admin overview**. Student onboarding and My lessons are shown only to students; legacy student-dashboard links redirect staff to their role's workspace.
+
+All accounts can add, replace or remove a profile picture in **Account settings**. JPEG, PNG and WebP source files up to 5 MB are cropped to a 256-pixel square in the browser. The API validates the prepared format, dimensions and 200 KB size boundary; one photo per account is stored in PostgreSQL and synchronized with an owned tutor profile. Profile photos are public, just like tutor introductions.
+
+Published tutors with a photo and a bookable future time can activate a **free 24-hour visibility boost once every seven days**. This changes ordering within matching discovery filters, keeps sample profiles below community tutors, and stops applying when the tutor has no open time or photo. It does not guarantee inquiries or bookings. Tutors can copy a direct `/#/tutor/<id>` link and preview their public profile. No advertising payment or automatic paid renewal is involved.
+
+The two additive migrations `005-profile-photos.sql` and `006-tutor-discovery-boost.sql` must run before deploying this release. Competitor research and confidence limits are documented in `docs/preply-differentiators.md`.
+
 Run `npm run db:test-users` to create one admin, two tutors, and two students in the configured database. These five persistent accounts have unique randomly generated passwords stored in **`.env.test-accounts.json`** in this folder. That file is excluded from Git and Vercel uploads; it is not included in the browser bundle or any API response.
 
 | Role | Email |

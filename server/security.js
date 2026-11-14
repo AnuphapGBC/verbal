@@ -9,7 +9,8 @@ export const cookieName = 'verbal_session';
 export const cookieOptions = { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', path: '/', maxAge: SESSION_DAYS * 86400000 };
 export const hash = value => createHash('sha256').update(value).digest('hex');
 export const lockSchedule = client => client.query('SELECT pg_advisory_xact_lock(7421104)');
-export const publicUser = row => ({ id: row.id, name: row.name, email: row.email, goal: row.goal, role: row.role });
+export const publicUser = row => ({ id: row.id, name: row.name, email: row.email, goal: row.goal, role: row.role,
+  image: row.avatar_updated_at ? `/api/profile-photos/${row.id}?v=${new Date(row.avatar_updated_at).getTime()}` : '' });
 export class HttpError extends Error {
   constructor(status, message) { super(message); this.status = status; }
 }
@@ -60,7 +61,7 @@ export async function session(req, _res, next) {
   req.user = null;
   if (token) {
     req.sessionHash = hash(token);
-    const result = await query(`SELECT u.id,u.name,u.email,u.goal,u.role
+    const result = await query(`SELECT u.id,u.name,u.email,u.goal,u.role,u.avatar_updated_at
       FROM verbal.sessions s JOIN verbal.users u ON u.id=s.user_id
       WHERE s.token_hash=$1 AND s.expires_at>NOW()`, [req.sessionHash]);
     req.user = result.rows[0] || null;

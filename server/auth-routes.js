@@ -21,7 +21,7 @@ authRoutes.post('/auth/register', rateLimit('register',30), async (req,res) => {
 });
 authRoutes.post('/auth/login', rateLimit('login-ip',50), rateLimit('login-account',10,req=>String(req.body?.email || '').trim().toLowerCase().slice(0,254)), async (req,res) => {
   const data=parse(z.object({email:emailSchema,password:z.string().min(1).max(128)}),req.body);
-  const {rows}=await query('SELECT id,name,email,goal,role,password_hash FROM verbal.users WHERE email=$1',[data.email]);
+  const {rows}=await query('SELECT id,name,email,goal,role,avatar_updated_at,password_hash FROM verbal.users WHERE email=$1',[data.email]);
   const valid=await verifyPassword(data.password,rows[0]?.password_hash);
   if(!rows[0]||!valid) fail(401,'Email or password is incorrect.');
   if(req.sessionHash) await query('DELETE FROM verbal.sessions WHERE token_hash=$1',[req.sessionHash]);
@@ -34,7 +34,7 @@ authRoutes.post('/auth/logout',async (req,res)=>{
 });
 authRoutes.patch('/account',authenticated,async(req,res)=>{
   const data=parse(z.object({name:text(2,80),goal:text(1,200)}),req.body);
-  const {rows}=await query('UPDATE verbal.users SET name=$1,goal=$2 WHERE id=$3 RETURNING id,name,email,goal,role',[data.name,data.goal,req.user.id]);
+  const {rows}=await query('UPDATE verbal.users SET name=$1,goal=$2 WHERE id=$3 RETURNING id,name,email,goal,role,avatar_updated_at',[data.name,data.goal,req.user.id]);
   res.json({user:publicUser(rows[0])});
 });
 authRoutes.post('/account/password',authenticated,rateLimit('password-change',10,req=>req.user.id),async(req,res)=>{

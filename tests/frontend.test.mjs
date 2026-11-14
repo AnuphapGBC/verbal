@@ -15,7 +15,7 @@ test('Friendly frontend keeps discovery, booking, and account actions usable', {
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
   dom.window.HTMLElement.prototype.scrollIntoView = noop;
   dom.window.matchMedia = () => ({ matches: false, addEventListener: noop, removeEventListener: noop });
-  const vite = await createServer({ server: { middlewareMode: true, watch: null }, appType: 'custom' });
+  const vite = await createServer({ server: { middlewareMode: true, watch: null, hmr: false }, appType: 'custom' });
   const React = await import('react');
   const { render, screen, cleanup, waitFor, act } = await import('@testing-library/react');
   suite.afterEach(() => cleanup());

@@ -3,15 +3,16 @@ import { z } from 'zod';
 import { query, transaction } from './db.js';
 import { parse, text, integerId, uuid, tutorSchema, isoDate, authenticated, fail, languages,lockSchedule } from './security.js';
 import { mapTutor,tutorFields,mapSlot,mapBooking,bookingSelect } from './mappers.js';
+import { activeBoostSql } from './discovery.js';
 export const tutorRoutes=Router();
 tutorRoutes.get('/tutors',async(req,res)=>{
   const filter=parse(z.object({language:z.enum(languages).optional(),maxPrice:z.coerce.number().int().min(5).max(500).optional(),search:text(0,100).optional(),saved:z.enum(['true','false']).optional()}),req.query);
   if(filter.saved==='true'&&!req.user) fail(401,'Please log in to see saved tutors.');
-  const {rows}=await query(`SELECT ${tutorFields.split(',').map(f=>`t.${f}`).join(',')} FROM verbal.tutors t
+  const {rows}=await query(`SELECT ${tutorFields.split(',').map(f=>`t.${f}`).join(',')},${activeBoostSql} AS is_boosted FROM verbal.tutors t
     WHERE t.active=true AND ($1::text IS NULL OR t.language=$1) AND ($2::integer IS NULL OR t.price<=$2)
     AND ($3::text IS NULL OR t.name ILIKE '%' || $3 || '%' OR t.tag ILIKE '%' || $3 || '%' OR t.language ILIKE '%' || $3 || '%')
     AND ($4::boolean=false OR EXISTS(SELECT 1 FROM verbal.saved_tutors s WHERE s.tutor_id=t.id AND s.user_id=$5))
-    ORDER BY t.is_demo ASC,t.id ASC LIMIT 100`,[filter.language||null,filter.maxPrice||null,filter.search||null,filter.saved==='true',req.user?.id||null]);
+    ORDER BY t.is_demo ASC,is_boosted DESC,t.id ASC LIMIT 100`,[filter.language||null,filter.maxPrice||null,filter.search||null,filter.saved==='true',req.user?.id||null]);
   const counts=await query('SELECT language AS name,COUNT(*)::int AS count FROM verbal.tutors WHERE active=true GROUP BY language ORDER BY language');
   res.json({tutors:rows.map(mapTutor),languages:counts.rows});
 });
@@ -61,8 +62,11 @@ tutorRoutes.get('/teaching',authenticated,async(req,res)=>{
 tutorRoutes.post('/teaching',authenticated,async(req,res)=>{
   const d=parse(tutorSchema,req.body);
   const tutor=await transaction(async client=>{
+    const {rows:owners}=await client.query('SELECT avatar_updated_at FROM verbal.users WHERE id=$1 FOR UPDATE',[req.user.id]);
+    const avatarUpdatedAt=owners[0]?.avatar_updated_at;
     const {rows}=await client.query(`INSERT INTO verbal.tutors(user_id,name,country,flag,language,native,price,tag,bio,image)
-      VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,'') ON CONFLICT(user_id) DO NOTHING RETURNING *`,[req.user.id,d.name,d.country,d.flag,d.language,d.native,d.price,d.tag,d.bio]);
+      VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) ON CONFLICT(user_id) DO NOTHING RETURNING *`,[req.user.id,d.name,d.country,d.flag,d.language,d.native,d.price,d.tag,d.bio,
+      avatarUpdatedAt ? `/api/profile-photos/${req.user.id}?v=${new Date(avatarUpdatedAt).getTime()}` : '']);
     if(!rows[0]) fail(409,'You already have a tutor profile.');
     await client.query("UPDATE verbal.users SET role=CASE WHEN role='learner' THEN 'tutor' ELSE role END WHERE id=$1",[req.user.id]);return rows[0];
   });res.status(201).json({tutor:mapTutor(tutor)});

@@ -22,3 +22,8 @@ The existing home, lesson dashboard, and sign-in screen supplied the functional 
 - Loading, empty, error, and successful states must explain the next useful action. Never invent activity, statistics, progress, reviews, or tutor verification.
 - Use Manrope for headings, DM Sans for body, and DM Serif Display sparingly for expressive editorial accents. System fonts remain usable if external fonts do not load.
 - Preserve real API behavior, secure sessions, database ownership boundaries, test accounts, and pay-later reservations.
+# Role-specific workspaces
+
+Students keep lesson discovery, reservations, and learning goals. Tutors land in a growth overview with actual activity counts, profile readiness, direct sharing, and a free discovery boost. Administrators land in community management. Staff navigation and sidebar content omit student onboarding and tutor-shopping prompts. Existing student-dashboard links resolve to the appropriate staff home after session restoration.
+
+Use the existing cream and forest palette, readable metric strip, two-column growth/checklist area and a compact public-profile sharing form. At narrow widths the panels stack and the role navigation remains reachable. Profile pictures use a consistent square crop and an initials/local-avatar fallback. Loading, eligibility, cooldown, paused profile, copy failure, upload failure and empty-profile states must remain actionable.

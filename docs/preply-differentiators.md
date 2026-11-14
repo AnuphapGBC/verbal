@@ -1,0 +1,39 @@
+# Verbal opportunities against Preply
+
+Research checked **13 November 2026** using public official Preply pages. “Confirmed” below means Preply explicitly documents a restriction or policy. “Not documented” means no equivalent was found in the reviewed public documentation; it is **not proof of absence**, and private experiments or regional rollouts may differ.
+
+## Strongest opportunities
+
+| Opportunity | Concrete Verbal workflow and value | Evidence / confidence | Relative scope |
+| --- | --- | --- | --- |
+| **1. Buy one lesson or a finite goal package** | A learner buys exactly one interview rehearsal or a four-session CELPIP sprint, with a total price, deliverables, booking slots and no automatic renewal. Tutors publish focused offers that are easier to share and buy. | **Confirmed commercial gap:** Preply requires subscriptions for regular lessons and explicitly says standalone one-time lesson packs are unavailable. Trials are an exception. [Subscription explanation](https://help.preply.com/en/articles/4966680-how-does-my-preply-subscription-work). | Low–medium, using existing booking. Real checkout/settlement must exist before calling it a paid product. |
+| **2. Paid first sessions with transparent tutor earnings** | On every booking, including a student's first session, show learner price, platform fee and tutor take-home. Tutors earn from every delivered first lesson. This is a supply-acquisition proposition more than a novel teaching tool. | **Confirmed policy difference:** Preply takes 100% commission on each new student's trial, followed by 18–33% on regular lessons. [Commission model](https://help.preply.com/en/articles/4171383-preply-commission-model); [current payment guide](https://help.preply.com/en/articles/4171348-when-and-how-you-get-paid-for-lessons). | Medium; payment ledger and unit economics required. |
+| **3. Student-owned, exportable learning passport** | After each lesson save human-approved goals, rubric scores, mistakes and learner work. Student exports a PDF/JSON portfolio or grants a new tutor access, avoiding a new assessment from scratch. Include before/after evidence rather than attendance alone. | **Confirmed narrow gap:** Preply Canvas cannot be exported and is private to one learner/tutor pair. A complete cross-tutor passport is **not documented**, rather than proven absent. [Canvas documentation](https://help.preply.com/en/articles/13399431-preply-canvas-your-workspace-for-focused-and-collaborative-teaching). | Medium. Start with manual notes and export; AI is optional. |
+| **4. Human feedback without a live appointment** | Learner purchases a defined correction task: a 2-minute recording or 300-word response, a tutor-selected turnaround, annotated corrections and one resubmission. Tutor accepts capacity-limited jobs between live sessions. | **Not documented:** no standalone, paid asynchronous human-feedback product found. Preply already offers homework, notes, messages and AI scenario practice; uploading homework alone is parity. [Homework](https://help.preply.com/en/articles/15587886-what-is-homework-on-preply); [AI feature announcement](https://preply.com/en/blog/preply-announces-new-ai-powered-features-to-guide-the-future-of-personalized-learning-in-a-human-ai-world/). | Medium. Queue, attachments/recording, deadlines, review states and purchases. |
+| **5. A coordinated tutor team for one goal** | One learner assigns a lead tutor and a specialist, e.g. writing plus pronunciation, with one shared plan, consent-controlled handover and one budget. Specialists contribute without repeating onboarding. | **Confirmed underlying friction:** Preply requires independent subscriptions per tutor, and Canvas is pair-private. The coordinated team workflow itself is **not documented**. Preply does support multiple tutors and transferring lesson value, so do not claim otherwise. [Subscriptions](https://help.preply.com/en/articles/4966680-how-does-my-preply-subscription-work); [moving lessons](https://help.preply.com/en/articles/7924262-how-do-i-move-my-lessons-to-another-tutor); [Canvas](https://help.preply.com/en/articles/13399431-preply-canvas-your-workspace-for-focused-and-collaborative-teaching). | High; defer until marketplace has sufficient supply. |
+| **6. Qualified discovery rotation for new tutors** | Reserve a small number of search placements for eligible new tutors who match language, learner goal, budget and availability. Tutors see actual qualified impressions → profile visits → inquiries → bookings and the reason they were matched. Admins control rotation and quality eligibility. | **Not documented:** no equivalent guaranteed/rotating qualified-exposure program found. Preply already provides visibility advice, badges, ads and performance analytics. Its documented ranking favors conversion likelihood. [Ranking explanation](https://help.preply.com/en/articles/11833566-7-how-to-choose-the-right-price); [Tutor Insights](https://help.preply.com/en/articles/11067649-insights-page). | Low–medium for honest rotation and events; do not fabricate analytics or promise bookings. |
+
+## Recommended next sequence
+
+1. **Finite goal offers + standalone booking.** Best immediate learner conversion and tutor sharing proposition, with the clearest documented competitor difference. Begin with one-time booking and a structured offer card; avoid suggesting a guaranteed exam result.
+2. **Qualified discovery rotation + real funnel analytics.** Directly serves the requested tutor reach boost and fits tutor/admin dashboards. Call this Verbal's proposed approach, not a verified Preply omission.
+3. **Learning passport with export.** Builds retention and continuity around an explicit Canvas limitation. Manual structured notes, learner consent and PDF export are enough for a useful first release.
+
+Paid first sessions should be part of the eventual fee policy. Human asynchronous feedback is the most promising later product experiment. Team tutoring requires enough tutors and learners to justify its coordination cost.
+
+## Avoid weak uniqueness claims
+
+- **AI practice, lesson summaries and personalized daily exercises:** Preply already documents Lesson Insights, Daily Exercises and Scenario Practice. [Official announcement](https://preply.com/en/blog/preply-announces-new-ai-powered-features-to-guide-the-future-of-personalized-learning-in-a-human-ai-world/).
+- **Shared notes, whiteboard, vocabulary, homework and learning plans:** already documented. [Classroom guide](https://help.preply.com/en/articles/4182374-preply-classroom-features-for-tutors-a-complete-guide).
+- **Shareable tutor profiles and referrals:** Preply has direct profile links, referral tracking and tutor referral rewards. [Profile promotion](https://help.preply.com/en/articles/4178916-how-to-promote-your-profile-and-earn-more-on-preply).
+- **Students post needs and tutors apply:** official subject job pages already display student requests with “Join now to apply.” [Example Norwegian jobs board](https://preply.com/en/online/norwegian-tutoring-jobs).
+- **Certificates:** Preply can issue these after sufficient learning time. A certificate alone is not distinctive. [Student certificates](https://help.preply.com/en/articles/5060847-certificates-for-students).
+- **Role-specific dashboards and profile pictures:** important marketplace fundamentals; ship them for usability and trust, not as exclusive features.
+
+## Short source excerpts
+
+- Subscription documentation: “Preply does not offer standalone one-time lesson packs”.
+- Commission documentation: “The commission for every trial lesson with a new student is 100%.”
+- Canvas documentation: “Currently, Preply Canvas content cannot be exported.”
+
+All other descriptions above are paraphrases. Public documentation establishes the explicit restrictions, but does not establish the absence of every proposed feature.

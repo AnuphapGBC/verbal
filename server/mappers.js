@@ -1,8 +1,9 @@
-export const tutorFields = 'id,user_id,name,country,flag,language,native,price,tag,bio,image,rating,reviews,lessons,is_demo';
+export const tutorFields = 'id,user_id,name,country,flag,language,native,price,tag,bio,image,rating,reviews,lessons,is_demo,discovery_boosted_at';
 export function mapTutor(t) {
   return { id:t.id, userId:t.user_id, name:t.name, country:t.country, flag:t.flag, language:t.language, native:t.native,
     price:Number(t.price), tag:t.tag, bio:t.bio, image:t.image, rating:Number(t.rating), reviews:t.reviews,
-    lessons:t.lessons, isDemo:t.is_demo };
+    lessons:t.lessons, isDemo:t.is_demo,
+    boosted: Boolean(t.image && (t.is_boosted ?? (t.discovery_boosted_at && new Date(t.discovery_boosted_at).getTime()+86400000>Date.now()))) };
 }
 export const bookingSelect = `SELECT b.id,b.user_id,b.tutor_id,b.slot_id,b.status,b.price,b.goal,b.created_at,
   r.id AS review_id,r.rating AS review_rating,r.body AS review_body,

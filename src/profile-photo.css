@@ -1,0 +1,7 @@
+.profile-photo-editor{display:flex;align-items:flex-start;gap:24px;margin-top:24px}
+.profile-photo-preview{display:block;flex-shrink:0;width:96px;height:96px;object-fit:cover;border:1px solid var(--line);border-radius:50%;background:var(--soft)}
+.profile-photo-controls{flex:1;min-width:0}
+.profile-photo-controls>p{font-size:13px;line-height:1.7}
+.profile-photo-actions{display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin-top:16px}
+.profile-photo-status{min-height:24px;margin-top:8px}
+@media(max-width:420px){.profile-photo-editor{flex-direction:column;gap:16px}.profile-photo-actions{gap:8px}.profile-photo-actions>.outlined-btn{width:100%;justify-content:center}}

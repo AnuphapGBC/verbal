@@ -23,12 +23,13 @@ function TutorForm({ tutor, user, onSaved, notify }) {
 
 const localInputDate = date => new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0,16);
 
-export default function Teaching({ user, onUserChanged, onMessage, notify }) {
+export default function Teaching({ user, onUserChanged, onMessage, notify, initialTab = 'schedule' }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [version, setVersion] = useState(0);
-  const [tab, setTab] = useState('schedule');
+  const [tab, setTab] = useState(initialTab);
+  useEffect(() => { setTab(initialTab); }, [initialTab]);
   const [busy, setBusy] = useState(false);
   const [slotError, setSlotError] = useState('');
   useEffect(() => {
